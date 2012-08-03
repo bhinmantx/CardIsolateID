@@ -1,5 +1,9 @@
 // CardIsolation.cpp : Defines the entry point for the console application.
 //
+
+
+//////Note for anyone reading this code right now: This is a mishmash of code based on the "squares.c" tutorial 
+//////released with OpenCV
 #ifdef _CH_
 #pragma package <opencv>
 #endif
@@ -27,7 +31,7 @@ int thresh = 50;
 IplImage* img = 0;
 IplImage* img0 = 0;
 CvMemStorage* storage = 0;
-const char* wndname = "Square Detection Demo";
+const char* wndname = "Input Image";
 const char* croppedwndname = "Cropped Window";
 
 
@@ -170,16 +174,19 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
             }
 			////End the contour finding. 
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
-			
-			cout << endl << "About to start cropping" << endl;
-			IplImage* cropped = cvCreateImage( cvSize(cropRect->width , cropRect->height), img->depth, img->nChannels );
-			cvSetImageROI(img,*cropRect);
-			//cvSetImageROI(img,cvRect(1,5,10,10));
-			cvCopy(img,cropped,NULL);
-			cvResetImageROI(img);
-			cvNamedWindow( croppedwndname, 1 );
-			cvShowImage( croppedwndname, cropped );
-					
+		   if (cropRect->height > 0)
+		   {
+				cout << endl << "About to start cropping" << endl;
+				IplImage* cropped = cvCreateImage( cvSize(cropRect->width , cropRect->height), img->depth, img->nChannels );
+				cvSetImageROI(img,*cropRect);
+				//cvSetImageROI(img,cvRect(1,5,10,10));
+				cvCopy(img,cropped,NULL);
+				cvResetImageROI(img);
+				cvNamedWindow( croppedwndname, 1 );
+				cvShowImage( croppedwndname, cropped );
+		   }
+		   else
+			   cout << endl << "Warning: bad size" << endl;
         }
     }
 
@@ -237,10 +244,10 @@ void drawSquares( IplImage* img, CvSeq* squares )
 
 //char* names[] = { "pic1.png", "pic2.png", "pic3.png",
 //                  "pic4.png", "pic5.png", "pic6.png", 0 };
-char* names[] = { "C:\\Documents and Settings\\Brendan\\My Documents\\Visual Studio 2008\\Projects\\CardIsolation\\Debug\\capture1.jpg", "cap (1).jpg", "cap (2).jpg", "cap (4).jpg",
-					"cap (5).jpg","cap (6).jpg","cap (7).jpg", 0};
+//char* names[] = { "C:\\Documents and Settings\\Brendan\\My Documents\\Visual Studio 2008\\Projects\\CardIsolation\\Debug\\capture1.jpg", "cap (1).jpg", "cap (2).jpg", "cap (4).jpg",
+//					"cap (5).jpg","cap (6).jpg","cap (7).jpg", 0};
 
-
+char* names[] = { "photo 2.JPG", "photo 3b.JPG", "photo 4b.JPG" , 0};
 
 
 
