@@ -9,7 +9,8 @@
 #endif
 
 #define CV_NO_BACKWARD_COMPATIBILITY
-
+//#define VIDEO_WINDOW "Webcam"
+///Swapping VIDEO_WINDOW for ""CamWindow""
 
 
 
@@ -33,6 +34,27 @@ IplImage* img0 = 0;
 CvMemStorage* storage = 0;
 const char* wndname = "Input Image";
 const char* croppedwndname = "Cropped Window";
+
+
+
+///With any luck this should accept the square's sequence and the bounding box in rect
+///and fix everything
+cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints){
+
+	cv::Mat rotated;
+	srcRect->height;
+	CvPoint* srcVerts = new CvPoint[3];
+	CvPoint* rotatedVerts;
+	//	cv::Point2d srcVerts[3];
+	//	srcVerts[0] = cvPoint(srcPoints[0]);
+
+
+return rotated;
+}
+
+
+
+
 
 
 // helper function:
@@ -62,6 +84,7 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
     CvSeq* result;
 	CvRect* rect = new CvRect;
 	CvRect* cropRect = new CvRect;
+
 
     double s, t;
     // create empty sequence that will contain points -
@@ -139,10 +162,14 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 					//if(cRatio<=1.0 && cRatio>=0.4)
 //						std::cout<< std::endl << "I found a contour of area: " << cvContourArea(result,CV_WHOLE_SEQ,0) << " Ratio: " << cRatio;
 					
+
+
 					if((cvContourArea(result,CV_WHOLE_SEQ,0) > largestFound))
 						{
 							largestFound = (cvContourArea(result,CV_WHOLE_SEQ,0));
 							*cropRect = cvBoundingRect(result);
+							////OR what if I did this 
+
 						}
 					
 					s = 0;
@@ -164,9 +191,16 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
                     // (all angles are ~90 degree) then write quandrange
                     // vertices to resultant sequence
                     if( s < 0.3 )
+					{
+						if(squares->total > 0)
+						for( i = 0; i < 4; i++ )
+							cvSeqRemove(squares,0);
+
                         for( i = 0; i < 4; i++ )
-                            cvSeqPush( squares,(CvPoint*)cvGetSeqElem( result, i ));
-                }
+							cvSeqPush( squares,(CvPoint*)cvGetSeqElem( result, i ));
+					}
+
+				}
 
                 // take the next contour
 				
@@ -174,19 +208,8 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
             }
 			////End the contour finding. 
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
-		   if (cropRect->height > 0)
-		   {
-				cout << endl << "About to start cropping" << endl;
-				IplImage* cropped = cvCreateImage( cvSize(cropRect->width , cropRect->height), img->depth, img->nChannels );
-				cvSetImageROI(img,*cropRect);
-				//cvSetImageROI(img,cvRect(1,5,10,10));
-				cvCopy(img,cropped,NULL);
-				cvResetImageROI(img);
-				cvNamedWindow( croppedwndname, 1 );
-				cvShowImage( croppedwndname, cropped );
-		   }
-		   else
-			   cout << endl << "Warning: bad size" << endl;
+			cropRotate(cropRect,squares);
+		  
         }
     }
 
@@ -194,7 +217,7 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 		/////This is where we want to make our own sequence
 	/////Filtered. It would contain only the largest of the 
 	/////contours in "squares"
-	CvSeq* foundCard = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+	//CvSeq* foundCard = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
 
     // release all the temporary images
     cvReleaseImage( &gray );
@@ -242,10 +265,7 @@ void drawSquares( IplImage* img, CvSeq* squares )
 }
 
 
-//char* names[] = { "pic1.png", "pic2.png", "pic3.png",
-//                  "pic4.png", "pic5.png", "pic6.png", 0 };
-//char* names[] = { "C:\\Documents and Settings\\Brendan\\My Documents\\Visual Studio 2008\\Projects\\CardIsolation\\Debug\\capture1.jpg", "cap (1).jpg", "cap (2).jpg", "cap (4).jpg",
-//					"cap (5).jpg","cap (6).jpg","cap (7).jpg", 0};
+
 
 char* names[] = { "photo 2.JPG", "photo 3b.JPG", "photo 4b.JPG" , 0};
 
@@ -254,11 +274,59 @@ char* names[] = { "photo 2.JPG", "photo 3b.JPG", "photo 4b.JPG" , 0};
 int main(int argc, char** argv)
 {
 
+//////////Webcam section
+	CvCapture* capture = 0;
+		
+	IplImage* cam_curr_frame = 0; // current video frame
+	IplImage* cam_gray_frame = 0; // grayscale version of current frame
+	int camw, camh; // video frame size
+	IplImage* cam_eig_image = 0;
+	IplImage* cam_temp_image = 0;
+
+		// Capture from a webcam
+	capture = cvCaptureFromCAM(CV_CAP_ANY);
+	//capture = cvCaptureFromCAM(0); // capture from video device #0
+	if ( !capture) {
+		fprintf(stderr, "ERROR: capture is NULL... Exiting\n");
+		//getchar();
+		return -1;
+	}
+
+
+		cvNamedWindow("CamWindow", 0); // allow the window to be resized
+		while (true) {
+		
+		// Get one frame
+		cam_curr_frame = cvQueryFrame(capture);
+		if ( !cam_curr_frame) {
+			fprintf(stderr, "ERROR: frame is null... Exiting\n");
+			//getchar();
+			break;
+		}
+		cvShowImage("CamWindow", cam_curr_frame);
+
+		// If ESC key pressed, Key=0x10001B under OpenCV 0.9.7(linux version),
+		// remove higher bits using AND operator
+		//if ( (cvWaitKey(10) & 255) == 27)
+		//	break;
+		if ( (cvWaitKey(10) & 255) == 78)
+		{
+			img0 = cam_curr_frame;
+			break;
+		}
+
+
+
+	}
+
+	/////EndWebcam
+
+
 
     int i, c;
     // create memory storage that will contain all the dynamic data
     storage = cvCreateMemStorage(0);
-
+/*
     for( i = 0; names[i] != 0; i++ )
     {
         // load i-th image
@@ -268,6 +336,8 @@ int main(int argc, char** argv)
             printf("Couldn't load %s\n", names[i] );
             continue;
         }
+
+		*/
 
         //img = cvCloneImage( img0 );
 		img = cvCreateImage(cvSize(640,480),img0->depth,img0->nChannels);
@@ -287,11 +357,18 @@ int main(int argc, char** argv)
         cvReleaseImage( &img0 );
         // clear memory storage - reset free space position
         cvClearMemStorage( storage );
-        if( (char)c == 27 )
-            break;
-    }
+    //    if( (char)c == 27 )
+      //      break;
+    
 	cvDestroyWindow(croppedwndname);
     cvDestroyWindow( wndname );
+
+
+	/////Webcam related
+
+	cvReleaseCapture( &capture);
+	cvDestroyWindow("CamWindow");
+//	cvDestroyWindow(CORNER_EIG);
 
 
 	return 0;
