@@ -42,9 +42,9 @@ const char* croppedwndname = "Cropped Window";
 cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints){
 
 	cv::Mat rotated;
-	srcRect->height;
-	CvPoint* srcVerts = new CvPoint[3];
-	CvPoint* rotatedVerts;
+	//srcRect->height;
+	//CvPoint* srcVerts = new CvPoint[3];
+	//CvPoint* rotatedVerts;
 	//	cv::Point2d srcVerts[3];
 	//	srcVerts[0] = cvPoint(srcPoints[0]);
 
@@ -52,7 +52,29 @@ cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints){
 return rotated;
 }
 
+void  displayCropped(CvRect *srcRect, IplImage *cimg)
+{
+		if (srcRect->height > 0)
+		{
+		/*
+		cout << endl << "X-Coord: " << cropRect->x; 
+		cout << endl << "Y-Coord: " << cropRect->y;
+		cout << endl << "Height " << cropRect->height;
+		cout << endl << "Width" << cropRect->width;
+		*/
+		cout << endl << "About to start cropping" << endl;
+		IplImage* cropped = cvCreateImage( cvSize(srcRect->width , srcRect->height), cimg->depth, cimg->nChannels );
+		cvSetImageROI(cimg,*srcRect);
+		//cvSetImageROI(img,cvRect(1,5,10,10));
+		cvCopy(img,cropped,NULL);
+		cvResetImageROI(cimg);
+		cvNamedWindow( croppedwndname, 1 );
+		cvShowImage( croppedwndname, cropped );
+		}
+		else
+		cout << endl << "Warning: bad size" << endl;
 
+}
 
 
 
@@ -82,6 +104,8 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
     IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
     IplImage* tgray;
     CvSeq* result;
+
+	///creating a new bounding rectangle to put around the found card
 	CvRect* rect = new CvRect;
 	CvRect* cropRect = new CvRect;
 
@@ -159,16 +183,11 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
                     cvCheckContourConvexity(result) && (cRatio<=1.40 && cRatio>=1.34))
 					//cvCheckContourConvexity(result))
                 {
-					//if(cRatio<=1.0 && cRatio>=0.4)
-//						std::cout<< std::endl << "I found a contour of area: " << cvContourArea(result,CV_WHOLE_SEQ,0) << " Ratio: " << cRatio;
-					
-
-
+					////Locating the (hopefully largest) contour matching the ratio of the car
 					if((cvContourArea(result,CV_WHOLE_SEQ,0) > largestFound))
 						{
 							largestFound = (cvContourArea(result,CV_WHOLE_SEQ,0));
-							*cropRect = cvBoundingRect(result);
-							////OR what if I did this 
+							*cropRect = cvBoundingRect(result); 
 
 						}
 					
@@ -208,9 +227,10 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
             }
 			////End the contour finding. 
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
-			cropRotate(cropRect,squares);
-		  
         }
+		displayCropped(cropRect, img);
+		cropRotate(cropRect,squares);
+
     }
 
 
@@ -224,10 +244,6 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
     cvReleaseImage( &pyr );
     cvReleaseImage( &tgray );
     cvReleaseImage( &timg );
-
-
-
-
 
     return squares;
 }
@@ -258,6 +274,12 @@ void drawSquares( IplImage* img, CvSeq* squares )
         // draw the square as a closed polyline
         cvPolyLine( cpy, &rect, &count, 1, 1, CV_RGB(0,255,0), 1, CV_AA, 0 );
     }
+
+
+
+
+
+
 
     // show the resultant image
     cvShowImage( wndname, cpy );
