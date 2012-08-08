@@ -42,28 +42,71 @@ const char* croppedwndname = "Cropped Window";
 cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
 
 	///Create the matrix to store our points
-	cv::Mat rotated;
+	
+		cv::Mat rotated;
 
+
+	if (srcRect->height > 0){
 	cv::Mat src = srcImg;
 	
 	vector<CvPoint> pointsToFix;
 	
 	///We need to enter the points as upper left, upper right, lower left, lower right??
 	///Apparently not, apparently it's upper left, upper right, lower right, lower left
-
+/*
 	pointsToFix.push_back(cvPoint(srcRect->x,srcRect->y));
 	pointsToFix.push_back(cvPoint((srcRect->x + srcRect->width),srcRect->y));
 	pointsToFix.push_back(cvPoint((srcRect->x + srcRect->width),(srcRect->y + srcRect->height)));
 	pointsToFix.push_back(cvPoint(srcRect->x,(srcRect->y + srcRect->height)));
+*/
+/*
+	pointsToFix.push_back(cvPoint(srcRect->x,srcRect->y));
+
+	pointsToFix.push_back(cvPoint((srcRect->x + srcRect->width),srcRect->y));
+
+	pointsToFix.push_back(cvPoint((srcRect->x + srcRect->width),(srcRect->y + srcRect->height)));
+
+	pointsToFix.push_back(cvPoint(srcRect->x,(srcRect->y + srcRect->height)));
+
+	cout<< endl  << "X: " << srcRect->x << " y: " << srcRect->y << " of first point" << endl;
+*/
+
+///Instead of the src rec, let's try using squares
+
+	//we need a seq reader
+CvSeqReader reader;
+
+cvStartReadSeq( srcPoints, &reader, 0 );
+
+
+if (srcPoints->total > 0){
+//      CvPoint pt[4], *rect = pt;
+//        int count = 4;
+		CvPoint temp;
+        // read 4 vertices
+        CV_READ_SEQ_ELEM( temp, reader );
+		pointsToFix.push_back(temp);
+        CV_READ_SEQ_ELEM( temp, reader );
+        pointsToFix.push_back(temp);
+		CV_READ_SEQ_ELEM( temp, reader );
+		pointsToFix.push_back(temp);
+        CV_READ_SEQ_ELEM( temp, reader );
+		pointsToFix.push_back(temp);
+}
+else
+fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
+
+
+
+
 
 	/////Following stack overflow advice and dropping an image to disk
 	CvPoint* npoint = &pointsToFix[0];
 	int n = (int)pointsToFix.size();
-	//cv::Mat * draw = src.clone();
+
+	std::cout<< endl << "drawing";
 	IplImage * draw = cvCloneImage(srcImg);
 	cvPolyLine(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
-
-	
 	cvSaveImage("draw.jpg",draw);
 
 	//CvPoint* srcVerts = new CvPoint[3];
@@ -71,6 +114,49 @@ cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
 	//	cv::Point2d srcVerts[3];
 	//	srcVerts[0] = cvPoint(srcPoints[0]);
 
+////Assemble a rotated rectangle out of that info
+///I think I already have this, it's the src rect
+
+	std::cout<< endl << "About to create the minAreaRect";
+
+	cv::RotatedRect box =	cvBoundingRect(srcRect);
+	//cv::RotatedRect box = minAreaRect(srcRect);
+	
+	
+//	minAreaRect(pointsToFix);
+	//cv::RotatedRect box = minAreaRect(pointsToFix);
+
+
+	std::cout<< endl << "Array";
+	///An array of points?
+	cv::Point2f pts[4];
+	///Copying those points from box?
+	std::cout<< endl << "copying to box (possibly to)";
+	box.points(pts);
+	
+	cv::Point2f src_vertices[3];
+	src_vertices[0] = pts[0];
+	src_vertices[1] = pts[1];
+	src_vertices[2] = pts[3];
+
+	cv::Point2f dst_vertices[3];
+	dst_vertices[0] = cvPoint(0,0);
+	dst_vertices[1] = cvPoint(box.boundingRect().width-1,0);
+	dst_vertices[2] = cvPoint(0,box.boundingRect().height-1);
+
+		std::cout<< endl << "Get Affine Transform";
+	cv::Mat warpAffineMatrix = getAffineTransform(src_vertices, dst_vertices);
+
+		std::cout<< endl << "Rotating?" << endl;
+	//cv::Mat rotated;   ///original rotated decl
+	cv::Size size(box.boundingRect().width, box.boundingRect().height);
+	warpAffine(src, rotated, warpAffineMatrix, size);
+	
+
+	cvSaveImage("rotated.jpg",draw);
+	}
+	else
+		fprintf(stderr, "ERROR: capture is NULL... Exiting\n");
 
 return rotated;
 }
@@ -79,12 +165,12 @@ void  displayCropped(CvRect *srcRect, IplImage *cimg)
 {
 		if (srcRect->height > 0)
 		{
-		/*
-		cout << endl << "X-Coord: " << cropRect->x; 
-		cout << endl << "Y-Coord: " << cropRect->y;
-		cout << endl << "Height " << cropRect->height;
-		cout << endl << "Width" << cropRect->width;
-		*/
+		
+		cout << endl << "X-Coord: " << srcRect->x; 
+		cout << endl << "Y-Coord: " << srcRect->y;
+		cout << endl << "Height " << srcRect->height;
+		cout << endl << "Width" << srcRect->width;
+		
 		cout << endl << "About to start cropping" << endl;
 		IplImage* cropped = cvCreateImage( cvSize(srcRect->width , srcRect->height), cimg->depth, cimg->nChannels );
 		cvSetImageROI(cimg,*srcRect);
@@ -210,8 +296,12 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 					if((cvContourArea(result,CV_WHOLE_SEQ,0) > largestFound))
 						{
 							largestFound = (cvContourArea(result,CV_WHOLE_SEQ,0));
+							
+							//////we don't want to bound this rect anymore
 							*cropRect = cvBoundingRect(result); 
-
+							
+							////But we have to keep it for testing
+							//*cropRect = result;
 						}
 					
 					s = 0;
@@ -252,6 +342,7 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
         }
 		displayCropped(cropRect, img);
+		cout <<  endl << "Finished the display" << endl;
 		cropRotate(cropRect,squares,img);
 
     }
