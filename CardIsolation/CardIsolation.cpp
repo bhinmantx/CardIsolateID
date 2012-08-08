@@ -38,11 +38,34 @@ const char* croppedwndname = "Cropped Window";
 
 
 ///With any luck this should accept the square's sequence and the bounding box in rect
-///and fix everything
-cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints){
+///and apply the affine transformation
+cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
 
+	///Create the matrix to store our points
 	cv::Mat rotated;
-	//srcRect->height;
+
+	cv::Mat src = srcImg;
+	
+	vector<CvPoint> pointsToFix;
+	
+	///We need to enter the points as upper left, upper right, lower left, lower right??
+	///Apparently not, apparently it's upper left, upper right, lower right, lower left
+
+	pointsToFix.push_back(cvPoint(srcRect->x,srcRect->y));
+	pointsToFix.push_back(cvPoint((srcRect->x + srcRect->width),srcRect->y));
+	pointsToFix.push_back(cvPoint((srcRect->x + srcRect->width),(srcRect->y + srcRect->height)));
+	pointsToFix.push_back(cvPoint(srcRect->x,(srcRect->y + srcRect->height)));
+
+	/////Following stack overflow advice and dropping an image to disk
+	CvPoint* npoint = &pointsToFix[0];
+	int n = (int)pointsToFix.size();
+	//cv::Mat * draw = src.clone();
+	IplImage * draw = cvCloneImage(srcImg);
+	cvPolyLine(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
+
+	
+	cvSaveImage("draw.jpg",draw);
+
 	//CvPoint* srcVerts = new CvPoint[3];
 	//CvPoint* rotatedVerts;
 	//	cv::Point2d srcVerts[3];
@@ -229,7 +252,7 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
         }
 		displayCropped(cropRect, img);
-		cropRotate(cropRect,squares);
+		cropRotate(cropRect,squares,img);
 
     }
 
