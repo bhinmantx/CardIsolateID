@@ -39,7 +39,8 @@ Mat img;
 Mat img0;
 
 
-CvMemStorage* storage = 0;
+//CvMemStorage* storage = 0;
+MemStorage* storage = 0;
 const char* camwndname = "Input Image Cam";
 const char* wndname = "square"; ////Is this what I am using to show the squares
 const char* croppedwndname = "Cropped Window";
@@ -52,14 +53,14 @@ Mat* rotateDisplay;
 ///and apply the affine transformation
 ////Modifying to accept a mat* instead of IplImage*
 //Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
-Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat *srcImg){
+Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 	///Create the matrix to store our points
 	
 		Mat * rotatedPtr = new Mat;
 		Mat rotated = *rotatedPtr;
 
 	if (srcRect->height > 0){
-	cv::Mat src = srcImg;
+	cv::Mat * src = &srcImg;
 	
 	vector<cv::Point> pointsToFix;
 	
@@ -118,7 +119,7 @@ fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
 	int n = (int)pointsToFix.size();
 
 	std::cout<< endl << "cloning";
-	cv::Mat draw = src.clone();
+	cv::Mat draw = src->clone();
 	std::cout<< endl << "drawing";
 	cv::polylines(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
 //	std::cout<< endl << "saving";
@@ -164,7 +165,7 @@ fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
 		std::cout<< endl << "Rotating?" << endl;
 	//cv::Mat rotated;   ///original rotated decl
 	cv::Size size(box.boundingRect().width, box.boundingRect().height);
-	warpAffine(src, rotated, warpAffineMatrix, size);
+	warpAffine(*src, rotated, warpAffineMatrix, size);
 	
 //	cv::imwrite("rotated.jpg",rotated);
 	}
@@ -243,7 +244,7 @@ double angle( CvPoint* pt1, CvPoint* pt2, CvPoint* pt0 )
 /////Originally this took an IplImage pointer but we're going to try to swap to a Mat
 
 //CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
-CvSeq* findSquares4( Mat img, CvMemStorage* storage )
+CvSeq* findSquares4( Mat img, MemStorage* storage )
 {
     CvSeq* contours;
     //int i, c, l, N = 11;
@@ -254,7 +255,7 @@ CvSeq* findSquares4( Mat img, CvMemStorage* storage )
 	//CvSize sz = cvSize(img.cols
 	CvSize sz = cvSize(img.rows,img.cols);	
 
-
+	cout << endl << "findSquares4: set up a bunch of temp images";
 //    IplImage* timg = cvCloneImage( img ); // make a copy of input image
 	//Mat timg = img.clone(); 
 	IplImage timgObj = IplImage(img.clone());
@@ -277,8 +278,8 @@ CvSeq* findSquares4( Mat img, CvMemStorage* storage )
     double s, t;
     // create empty sequence that will contain points -
     // 4 points per square (the square's vertices)
-    CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
-	
+//    CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+	cv::Seq * squares = new Seq(storage,sizeof(CvSeq));
     // select the maximum ROI in the image
     // with the width and height divisible by 2
     //cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
@@ -436,16 +437,19 @@ imshow("Rotated Window",*rotateDisplay);
 
 
 // the function draws all the squares in the image
-void drawSquares( IplImage* img, CvSeq* squares )
+void drawSquares( IplImage img, CvSeq* squares )
 {
+
+	cout << endl << "DrawSquares: create the reader, and then clone the img" ;
     CvSeqReader reader;
-    IplImage* cpy = cvCloneImage( img );
+    IplImage* cpy = cvCloneImage( &img );
     int i;
 
     // initialize reader of the sequence
     cvStartReadSeq( squares, &reader, 0 );
 
     // read 4 sequence elements at a time (all vertices of a square)
+	cout << endl << "Read the sequence elements";
     for( i = 0; i < squares->total; i += 4 )
     {
         CvPoint pt[4], *rect = pt;
@@ -543,13 +547,16 @@ int main(int argc, char** argv)
 	}
 
 	/////EndWebcam
-	
+	////
+	cout << endl << "Create some windows";
 	namedWindow(rotatedwnd,CV_WINDOW_AUTOSIZE);
 
     int i, c;
     // create memory storage that will contain all the dynamic data
     //storage = cvCreateMemStorage(0);
-	storage = cvCreateMemStorage(0);
+	cout << endl << "Create storage";
+//	storage = cvCreateMemStorage(0);
+	storage = new MemStorage(0);
 //	storage = new MemStorage(0);
 /*
     for( i = 0; names[i] != 0; i++ )
@@ -566,8 +573,11 @@ int main(int argc, char** argv)
 
         //img = cvCloneImage( img0 );
 	//////different func to clone
+
+		cout << endl << "Create the source img from the frame data";
 		img = cvCreateImage(cvSize(640,480),img0.depth(),img0.channels());
 		///And instead of using the cvResize we use resize()
+				cout << endl << "Resize";
 		resize(img0, img, cvSize(640,480),0,0,INTER_CUBIC);
 		
 		////
@@ -579,14 +589,18 @@ int main(int argc, char** argv)
         cvNamedWindow( camwndname, 1 );
 
         // find and draw the squares
-        drawSquares( img, findSquares4( img, storage ) );
+		cout << endl << "Draw some squares, if you find them";
+        drawSquares( IplImage(img), findSquares4( img, storage ) );
 
         // wait for key.
         // Also the function cvWaitKey takes care of event processing
         c = cvWaitKey(0);
-        // release both images
-        cvReleaseImage( &img );
-        cvReleaseImage( &img0 );
+       
+		
+		////Do we need to release these specifically?
+		// release both images
+       // cvReleaseImage( &img );
+        //cvReleaseImage( &img0 );
         // clear memory storage - reset free space position
         cvClearMemStorage( storage );
     //    if( (char)c == 27 )
@@ -598,8 +612,9 @@ int main(int argc, char** argv)
 
 	/////Webcam related
 
-	cvReleaseCapture( &capture);
-	cvDestroyWindow("CamWindow");
+	capture.release();
+	//cvReleaseCapture( &capture);
+	cvDestroyWindow(camwndname);
 //	cvDestroyWindow(CORNER_EIG);
 
 
