@@ -40,6 +40,7 @@ Mat img0;
 
 
 //CvMemStorage* storage = 0;
+///
 MemStorage* storage = 0;
 const char* camwndname = "Input Image Cam";
 const char* wndname = "square"; ////Is this what I am using to show the squares
