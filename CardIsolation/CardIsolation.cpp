@@ -26,6 +26,7 @@
 #include <sys/timeb.h>
 
 using namespace std;
+using namespace cv;
 
 
 int thresh = 50;
@@ -34,22 +35,23 @@ IplImage* img0 = 0;
 CvMemStorage* storage = 0;
 const char* wndname = "Input Image";
 const char* croppedwndname = "Cropped Window";
-
+const char* rotatedwnd = "Attempting to Rotate";
+Mat* rotateDisplay;
 
 
 ///With any luck this should accept the square's sequence and the bounding box in rect
 ///and apply the affine transformation
-cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
+Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
 
 	///Create the matrix to store our points
 	
-		cv::Mat rotated;
-
+		Mat * rotatedPtr = new Mat;
+		Mat rotated = *rotatedPtr;
 
 	if (srcRect->height > 0){
 	cv::Mat src = srcImg;
 	
-	vector<CvPoint> pointsToFix;
+	vector<cv::Point> pointsToFix;
 	
 	///We need to enter the points as upper left, upper right, lower left, lower right??
 	///Apparently not, apparently it's upper left, upper right, lower right, lower left
@@ -76,15 +78,16 @@ cv::Mat cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
 	//we need a seq reader
 CvSeqReader reader;
 
-cvStartReadSeq( srcPoints, &reader, 0 );
+cvStartReadSeq( srcPoints, &reader, 0);
 
 
 if (srcPoints->total > 0){
 //      CvPoint pt[4], *rect = pt;
 //        int count = 4;
-		CvPoint temp;
+	cv::Point temp;
         // read 4 vertices
         CV_READ_SEQ_ELEM( temp, reader );
+		cout << endl << "Can we reach this point?" << temp.x << endl;
 		pointsToFix.push_back(temp);
         CV_READ_SEQ_ELEM( temp, reader );
         pointsToFix.push_back(temp);
@@ -101,14 +104,20 @@ fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
 
 
 	/////Following stack overflow advice and dropping an image to disk
-	CvPoint* npoint = &pointsToFix[0];
+	const cv::Point* npoint = &pointsToFix[0];
 	int n = (int)pointsToFix.size();
 
+	std::cout<< endl << "cloning";
+	cv::Mat draw = src.clone();
 	std::cout<< endl << "drawing";
-	IplImage * draw = cvCloneImage(srcImg);
-	cvPolyLine(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
-	cvSaveImage("draw.jpg",draw);
+	cv::polylines(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
+//	std::cout<< endl << "saving";
+//	imwrite("draw1.jpg",draw);
 
+
+//	cvNamedWindow(rotatedwnd, 1);
+	
+//	cv::imshow( rotatedwnd, draw );
 	//CvPoint* srcVerts = new CvPoint[3];
 	//CvPoint* rotatedVerts;
 	//	cv::Point2d srcVerts[3];
@@ -119,13 +128,8 @@ fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
 
 	std::cout<< endl << "About to create the minAreaRect";
 
-	cv::RotatedRect box =	cvBoundingRect(srcRect);
-	//cv::RotatedRect box = minAreaRect(srcRect);
-	
-	
-//	minAreaRect(pointsToFix);
-	//cv::RotatedRect box = minAreaRect(pointsToFix);
 
+	cv::RotatedRect box = cv::minAreaRect(cv::Mat(pointsToFix));
 
 	std::cout<< endl << "Array";
 	///An array of points?
@@ -152,13 +156,16 @@ fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
 	cv::Size size(box.boundingRect().width, box.boundingRect().height);
 	warpAffine(src, rotated, warpAffineMatrix, size);
 	
-
-	cvSaveImage("rotated.jpg",draw);
+//	cv::imwrite("rotated.jpg",rotated);
 	}
 	else
-		fprintf(stderr, "ERROR: capture is NULL... Exiting\n");
+		fprintf(stderr, "ERROR: rotate didn't work");
 
-return rotated;
+
+
+
+//return rotated;
+return rotatedPtr;
 }
 
 void  displayCropped(CvRect *srcRect, IplImage *cimg)
@@ -341,9 +348,6 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 			////End the contour finding. 
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
         }
-		displayCropped(cropRect, img);
-		cout <<  endl << "Finished the display" << endl;
-		cropRotate(cropRect,squares,img);
 
     }
 
@@ -352,6 +356,22 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 	/////Filtered. It would contain only the largest of the 
 	/////contours in "squares"
 	//CvSeq* foundCard = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+
+		displayCropped(cropRect, img);
+		cout <<  endl << "Finished the display" << endl;
+		//char b;
+		//cin>>b;
+
+
+cout << "here" << endl;		
+
+cout << "middle" << endl;
+
+rotateDisplay = cropRotate(cropRect,squares,img);
+cout << "there" << endl;
+imshow("Rotated Window",*rotateDisplay);
+
+
 
     // release all the temporary images
     cvReleaseImage( &gray );
@@ -388,7 +408,6 @@ void drawSquares( IplImage* img, CvSeq* squares )
         // draw the square as a closed polyline
         cvPolyLine( cpy, &rect, &count, 1, 1, CV_RGB(0,255,0), 1, CV_AA, 0 );
     }
-
 
 
 
@@ -456,8 +475,8 @@ int main(int argc, char** argv)
 	}
 
 	/////EndWebcam
-
-
+	
+	namedWindow("Rotated Window",CV_WINDOW_AUTOSIZE);
 
     int i, c;
     // create memory storage that will contain all the dynamic data
