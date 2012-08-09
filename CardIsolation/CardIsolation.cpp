@@ -30,19 +30,29 @@ using namespace cv;
 
 
 int thresh = 50;
-IplImage* img = 0;
-IplImage* img0 = 0;
+///mats were pointers. swapping to objects 
+
+//Mat * img = 0;
+//Mat * img0 = 0;
+
+Mat img;
+Mat img0;
+
+
 CvMemStorage* storage = 0;
-const char* wndname = "Input Image";
+const char* camwndname = "Input Image Cam";
+const char* wndname = "square"; ////Is this what I am using to show the squares
 const char* croppedwndname = "Cropped Window";
 const char* rotatedwnd = "Attempting to Rotate";
+
 Mat* rotateDisplay;
 
 
 ///With any luck this should accept the square's sequence and the bounding box in rect
 ///and apply the affine transformation
-Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
-
+////Modifying to accept a mat* instead of IplImage*
+//Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
+Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat *srcImg){
 	///Create the matrix to store our points
 	
 		Mat * rotatedPtr = new Mat;
@@ -168,7 +178,7 @@ fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
 return rotatedPtr;
 }
 
-void  displayCropped(CvRect *srcRect, IplImage *cimg)
+void  displayCropped(CvRect *srcRect, Mat cimg)
 {
 		if (srcRect->height > 0)
 		{
@@ -179,16 +189,36 @@ void  displayCropped(CvRect *srcRect, IplImage *cimg)
 		cout << endl << "Width" << srcRect->width;
 		
 		cout << endl << "About to start cropping" << endl;
-		IplImage* cropped = cvCreateImage( cvSize(srcRect->width , srcRect->height), cimg->depth, cimg->nChannels );
-		cvSetImageROI(cimg,*srcRect);
+		//IplImage* cropped = cvCreateImage( cvSize(srcRect->width , srcRect->height), cimg.depth(), cimg.channels() );
+		
+//		Originally cropped was an IplImage * but we want to stick to Mats now. Trying a Mat* 
+///		Mat * cropped = cvCreateImage( cvSize(srcRect->width , srcRect->height), cimg.depth(), cimg.channels() );
+		Mat * cropped = new Mat(cvSize(srcRect->width, srcRect->height), cimg.depth(), cimg.channels());
+
+		//cvSetImageROI(cimg,*srcRect);
 		//cvSetImageROI(img,cvRect(1,5,10,10));
-		cvCopy(img,cropped,NULL);
-		cvResetImageROI(cimg);
+		
+//////Setting the ROI in C++ is a bit different. We would create a specific rectangle for the ROI but we have the srcRect
+		////We create a new image for that roi
+		cv::Mat roi_for_cropped;
+		
+		////we copy that rectangle sized area from in this case, cimg
+		roi_for_cropped = cimg(*srcRect);
+
+		////now we copy that new Mat to cropped (originally used  cvCopy
+		//		cvCopy(roi_for_cropped,cropped,NULL);
+		cimg.copyTo(roi_for_cropped);
+
+
+		///I don't think we need to worry about resetting it because we used that temp Mat
+		//cvResetImageROI(cimg);
 		cvNamedWindow( croppedwndname, 1 );
 		cvShowImage( croppedwndname, cropped );
+		
 		}
 		else
 		cout << endl << "Warning: bad size" << endl;
+////Do we need some kind of deletion for stuff like roi_for_cropped? 
 
 }
 
@@ -209,17 +239,35 @@ double angle( CvPoint* pt1, CvPoint* pt2, CvPoint* pt0 )
 
 // returns sequence of squares detected on the image.
 // the sequence is stored in the specified memory storage
-CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
+
+/////Originally this took an IplImage pointer but we're going to try to swap to a Mat
+
+//CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
+CvSeq* findSquares4( Mat img, CvMemStorage* storage )
 {
     CvSeq* contours;
     //int i, c, l, N = 11;
 	int i, c, l, N = 2;
-	CvSize sz = cvSize( img->width & -2, img->height & -2 );
-    IplImage* timg = cvCloneImage( img ); // make a copy of input image
-    IplImage* gray = cvCreateImage( sz, 8, 1 );
-    IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
-    IplImage* tgray;
-    CvSeq* result;
+
+
+	//CvSize sz = cvSize( img.cols() & -2, img.rows() & -2 );
+	//CvSize sz = cvSize(img.cols
+	CvSize sz = cvSize(img.rows,img.cols);	
+
+
+//    IplImage* timg = cvCloneImage( img ); // make a copy of input image
+	//Mat timg = img.clone(); 
+	IplImage timgObj = IplImage(img.clone());
+	IplImage * timg =&timgObj;
+	////Remember we're using Mat's now.
+	IplImage* gray = cvCreateImage( sz, 8, 1 );
+	//Mat gray(sz.height, sz.width, 1);
+	IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
+	//Mat pyr(sz.height/2,sz.width/2, 1);
+	//Mat tgray(sz.width,sz.height,1);
+	IplImage* tgray;
+    
+	CvSeq* result;
 
 	///creating a new bounding rectangle to put around the found card
 	CvRect* rect = new CvRect;
@@ -233,18 +281,22 @@ CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
 	
     // select the maximum ROI in the image
     // with the width and height divisible by 2
-    cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
+    //cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
 
     // down-scale and upscale the image to filter out the noise
-    cvPyrDown( timg, pyr, 7 );
-    cvPyrUp( pyr, timg, 7 );
-    tgray = cvCreateImage( sz, 8, 1 );
+    //cvPyrDown( timg, pyr, 7 );
+    //cvPyrUp( pyr, timg, 7 );
+    //tgray = cvCreateImage( sz, 8, 1 );
+	
+	//pyrUp(
+
 
     // find squares in every color plane of the image
     for( c = 0; c < 3; c++ )
     {
         // extract the c-th color plane
         cvSetImageCOI( timg, c+1 );
+
         cvCopy( timg, tgray, 0 );
 
         // try several threshold levels
@@ -430,40 +482,56 @@ int main(int argc, char** argv)
 {
 
 //////////Webcam section
-	CvCapture* capture = 0;
-		
-	IplImage* cam_curr_frame = 0; // current video frame
-	IplImage* cam_gray_frame = 0; // grayscale version of current frame
-	int camw, camh; // video frame size
-	IplImage* cam_eig_image = 0;
-	IplImage* cam_temp_image = 0;
+
+	VideoCapture capture(0);
+	if(!capture.isOpened()) //Check status of capture
+	{	fprintf(stderr, "ERROR: capture is NULL... Exiting\n");
+		return 0;
+	}
+
+	//IplImage* cam_curr_frame = 0; // current video frame
+	//IplImage* cam_gray_frame = 0; // grayscale version of current frame
+	//int camw, camh; // video frame size
+	//IplImage* cam_eig_image = 0;
+	//IplImage* cam_temp_image = 0;
+	
+	//Mat * cam_curr_frame = 0;
+	Mat cam_curr_frame; ///Can't use pointers to Mat's? ///remove init to 0
+	Mat * cam_gray_frame = 0; ///curr frame and grayscale ver
+	int camw, camh; //frame size
+	Mat * cam_eig_image = 0;
+	Mat * cam_temp_image = 0;
 
 		// Capture from a webcam
-	capture = cvCaptureFromCAM(CV_CAP_ANY);
+	//capture = cvCaptureFromCAM(CV_CAP_ANY);
+	
+/*
 	//capture = cvCaptureFromCAM(0); // capture from video device #0
 	if ( !capture) {
 		fprintf(stderr, "ERROR: capture is NULL... Exiting\n");
 		//getchar();
 		return -1;
 	}
-
-
-		cvNamedWindow("CamWindow", 0); // allow the window to be resized
+*/
+		namedWindow(camwndname,0);
+		//cvNamedWindow("CamWindow", 0); // allow the window to be resized
 		while (true) {
 		
 		// Get one frame
-		cam_curr_frame = cvQueryFrame(capture);
-		if ( !cam_curr_frame) {
+		//cam_curr_frame = cvQueryFrame(capture);
+		capture >> cam_curr_frame;
+		if ( cam_curr_frame.rows == 0) {
 			fprintf(stderr, "ERROR: frame is null... Exiting\n");
 			//getchar();
 			break;
 		}
-		cvShowImage("CamWindow", cam_curr_frame);
-
+//		cvShowImage("CamWindow", cam_curr_frame);
+		imshow(camwndname, cam_curr_frame);
 		// If ESC key pressed, Key=0x10001B under OpenCV 0.9.7(linux version),
 		// remove higher bits using AND operator
 		//if ( (cvWaitKey(10) & 255) == 27)
 		//	break;
+//		if((waitKey(10) & 255)==78)
 		if ( (cvWaitKey(10) & 255) == 78)
 		{
 			img0 = cam_curr_frame;
@@ -476,11 +544,13 @@ int main(int argc, char** argv)
 
 	/////EndWebcam
 	
-	namedWindow("Rotated Window",CV_WINDOW_AUTOSIZE);
+	namedWindow(rotatedwnd,CV_WINDOW_AUTOSIZE);
 
     int i, c;
     // create memory storage that will contain all the dynamic data
-    storage = cvCreateMemStorage(0);
+    //storage = cvCreateMemStorage(0);
+	storage = cvCreateMemStorage(0);
+//	storage = new MemStorage(0);
 /*
     for( i = 0; names[i] != 0; i++ )
     {
@@ -495,11 +565,18 @@ int main(int argc, char** argv)
 		*/
 
         //img = cvCloneImage( img0 );
-		img = cvCreateImage(cvSize(640,480),img0->depth,img0->nChannels);
-		cvResize(img0,img);
+	//////different func to clone
+		img = cvCreateImage(cvSize(640,480),img0.depth(),img0.channels());
+		///And instead of using the cvResize we use resize()
+		resize(img0, img, cvSize(640,480),0,0,INTER_CUBIC);
+		
+		////
+		//Cvresize(img0,img);
+
         // create window and a trackbar (slider) with parent "image" and set callback
         // (the slider regulates upper threshold, passed to Canny edge detector)
-        cvNamedWindow( wndname, 1 );
+		/////This was apparently removed
+        cvNamedWindow( camwndname, 1 );
 
         // find and draw the squares
         drawSquares( img, findSquares4( img, storage ) );
@@ -516,7 +593,7 @@ int main(int argc, char** argv)
       //      break;
     
 	cvDestroyWindow(croppedwndname);
-    cvDestroyWindow( wndname );
+    cvDestroyWindow( camwndname );
 
 
 	/////Webcam related
