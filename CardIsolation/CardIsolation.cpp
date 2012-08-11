@@ -35,13 +35,14 @@ int thresh = 50;
 //Mat * img = 0;
 //Mat * img0 = 0;
 
-Mat img;
-Mat img0;
 
 
-//CvMemStorage* storage = 0;
-///
-MemStorage* storage = 0;
+
+
+//const char* camwndname = "Input Image Cam";
+
+
+
 const char* camwndname = "Input Image Cam";
 const char* wndname = "square"; ////Is this what I am using to show the squares
 const char* croppedwndname = "Cropped Window";
@@ -245,49 +246,148 @@ double angle( CvPoint* pt1, CvPoint* pt2, CvPoint* pt0 )
 /////Originally this took an IplImage pointer but we're going to try to swap to a Mat
 
 //CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
-CvSeq* findSquares4( Mat img, MemStorage* storage )
+
+
+
+///We need this to be void temporarily
+//CvSeq* findSquares4( Mat img, MemStorage* storage )
+
+CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
 {
-    CvSeq* contours;
+
+	cout << endl << "Contours";
+	////So cv::Seq is not what we want? Still using a cvSeq of....unknown
+	CvSeq* contours = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+//	Seq* contours = CreateSeq(
+	cout << endl << "Contours Created";
+
+
+	int i, c, l, N=11;
+
+//	cv::Size sz = cvSize(img.cols() & -2, img.rows() & -2);
+	Size sz = img1.size();
+
+	
+
+  //  CvSeq* contours;
     //int i, c, l, N = 11;
-	int i, c, l, N = 2;
+//	int i, c, l, N = 2;
 
 
 	//CvSize sz = cvSize( img.cols() & -2, img.rows() & -2 );
-	//CvSize sz = cvSize(img.cols
-	CvSize sz = cvSize(img.rows,img.cols);	
+
 
 	cout << endl << "findSquares4: set up a bunch of temp images";
-//    IplImage* timg = cvCloneImage( img ); // make a copy of input image
-	//Mat timg = img.clone(); 
-	IplImage timgObj = IplImage(img.clone());
-	IplImage * timg =&timgObj;
+
+
+	
+	//    IplImage* timg = cvCloneImage( img ); // make a copy of input image
+
+	
+//	Mat *timg = 0;		
+//		(sz,8,1);  // make a copy of input image
+//	timg = new Mat(sz,8,1);
+
+	Mat timg = img1.clone();
+	
+cout << endl << "Timg declared!";
+
+char a;
+cin >> a;
+	imshow(camwndname,img1);
+
+
+
+//img1.clone();
+
+	//timg = img.clone();
+	//*timg = img.clone();
+
+	cout << endl << "Timg  not Cloned!";
+	//Mat timgObj = img1.clone();
+
+	cout << endl << "Cloned!";
+
+//	IplImage timgObj = IplImage(img.clone());
+//	IplImage * timg =&timgObj;
 	////Remember we're using Mat's now.
-	IplImage* gray = cvCreateImage( sz, 8, 1 );
+	Mat * gray = new Mat(sz,1);
+cout << endl << "gray DECLARED";
+	
+
+
+
+	cvtColor(timg,*gray,CV_RGB2GRAY);
+
+
+	cout << endl << "gray Created";
+	imshow(camwndname,*gray);
+
+	cvWaitKey(0);
+
+
+//	IplImage* gray = cvCreateImage( sz, 8, 1 );
 	//Mat gray(sz.height, sz.width, 1);
-	IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
+	
+//	Mat pyr(Size(240, 240));
+	Mat pyr(240,240,1);
+cout << endl << "Pyr Created";
+//	IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
 	//Mat pyr(sz.height/2,sz.width/2, 1);
-	//Mat tgray(sz.width,sz.height,1);
-	IplImage* tgray;
-    
+	
+	
+	Mat tgray(sz.width,sz.height,1);
+//	IplImage* tgray;
+  
+	
+cout << endl << "tgray Created";
+
+
 	CvSeq* result;
 
+	
 	///creating a new bounding rectangle to put around the found card
-	CvRect* rect = new CvRect;
-	CvRect* cropRect = new CvRect;
-
+	//CvRect* rect = new CvRect;
+	//CvRect* cropRect = new CvRect;
+	Rect * rect = new Rect();
+	Rect * cropRect = new Rect();
 
     double s, t;
     // create empty sequence that will contain points -
     // 4 points per square (the square's vertices)
-//    CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
-	cv::Seq * squares = new Seq(storage,sizeof(CvSeq));
+
+
+
+	//////CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), *MemStorage(storage) );
+		//CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), *CvMemStorage(storage) );
+
+	cout << endl << "creating seq";
+	CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+
+	
+	
+
+//	cv::Seq * squares = new Seq(storage,sizeof(CvSeq));
     // select the maximum ROI in the image
     // with the width and height divisible by 2
-    //cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
+//
+		
 
+
+    //cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
+//	timg.adjustROI( cvRect(0,0,sz.width,sz.height),);
+	//timg.adjustROI(0,0,
+
+	cout << "Trying for subImg)" ;
+	Mat subImg(timg(Range(0,0),Range(480,480)));
+		
     // down-scale and upscale the image to filter out the noise
-    //cvPyrDown( timg, pyr, 7 );
-    //cvPyrUp( pyr, timg, 7 );
+	
+cout << endl << "about to down";
+//    pyrDown( timg, pyr,sz);
+	pyrDown(subImg,pyr,Size(480,480));
+cout << endl << "about to up";
+    pyrUp( pyr, timg,sz );
     //tgray = cvCreateImage( sz, 8, 1 );
 	
 	//pyrUp(
@@ -297,7 +397,9 @@ CvSeq* findSquares4( Mat img, MemStorage* storage )
     for( c = 0; c < 3; c++ )
     {
         // extract the c-th color plane
-        cvSetImageCOI( timg, c+1 );
+        cvSetImageCOI( (IplImage*)(&timg), c+1 );
+
+/*	
 
         cvCopy( timg, tgray, 0 );
 
@@ -394,18 +496,21 @@ CvSeq* findSquares4( Mat img, MemStorage* storage )
 					}
 
 				}
+				
 
                 // take the next contour
 				
                 contours = contours->h_next;
+				
             }
+			
 			////End the contour finding. 
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
         }
-
+*/
     }
 
-
+/*
 		/////This is where we want to make our own sequence
 	/////Filtered. It would contain only the largest of the 
 	/////contours in "squares"
@@ -425,21 +530,23 @@ rotateDisplay = cropRotate(cropRect,squares,img);
 cout << "there" << endl;
 imshow("Rotated Window",*rotateDisplay);
 
+*/
 
-
-    // release all the temporary images
+/*    // release all the temporary images
     cvReleaseImage( &gray );
     cvReleaseImage( &pyr );
     cvReleaseImage( &tgray );
     cvReleaseImage( &timg );
-
+*/
     return squares;
+	
 }
 
 
 // the function draws all the squares in the image
 void drawSquares( IplImage img, CvSeq* squares )
 {
+	/*
 
 	cout << endl << "DrawSquares: create the reader, and then clone the img" ;
     CvSeqReader reader;
@@ -466,20 +573,15 @@ void drawSquares( IplImage img, CvSeq* squares )
         cvPolyLine( cpy, &rect, &count, 1, 1, CV_RGB(0,255,0), 1, CV_AA, 0 );
     }
 
-
-
-
-
-
     // show the resultant image
     cvShowImage( wndname, cpy );
     cvReleaseImage( &cpy );
+
+	*/
 }
 
 
 
-
-char* names[] = { "photo 2.JPG", "photo 3b.JPG", "photo 4b.JPG" , 0};
 
 
 
@@ -501,25 +603,21 @@ int main(int argc, char** argv)
 	//IplImage* cam_temp_image = 0;
 	
 	//Mat * cam_curr_frame = 0;
-	Mat cam_curr_frame; ///Can't use pointers to Mat's? ///remove init to 0
+	Mat  cam_curr_frame; ///Can't use pointers to Mat's? ///remove init to 0
 	Mat * cam_gray_frame = 0; ///curr frame and grayscale ver
 	int camw, camh; //frame size
 	Mat * cam_eig_image = 0;
 	Mat * cam_temp_image = 0;
 
-		// Capture from a webcam
-	//capture = cvCaptureFromCAM(CV_CAP_ANY);
-	
-/*
-	//capture = cvCaptureFromCAM(0); // capture from video device #0
-	if ( !capture) {
-		fprintf(stderr, "ERROR: capture is NULL... Exiting\n");
-		//getchar();
-		return -1;
-	}
-*/
-		namedWindow(camwndname,0);
-		//cvNamedWindow("CamWindow", 0); // allow the window to be resized
+	Mat * img;
+	Mat * img0 = new Mat();
+
+
+
+
+		cv::namedWindow(camwndname,1);
+		
+
 		while (true) {
 		
 		// Get one frame
@@ -530,68 +628,75 @@ int main(int argc, char** argv)
 			//getchar();
 			break;
 		}
-//		cvShowImage("CamWindow", cam_curr_frame);
-		imshow(camwndname, cam_curr_frame);
+		
+		imshow(camwndname,cam_curr_frame);
+		//imshow(camwndname, cam_curr_frame); ///Gives us a preview of what the camera is seeing. 
+											///currently freezes upon the switch to ID process.
+
+
 		// If ESC key pressed, Key=0x10001B under OpenCV 0.9.7(linux version),
 		// remove higher bits using AND operator
 		//if ( (cvWaitKey(10) & 255) == 27)
 		//	break;
 //		if((waitKey(10) & 255)==78)
+
+		
 		if ( (cvWaitKey(10) & 255) == 78)
 		{
-			img0 = cam_curr_frame;
+			cout << endl << "img0 is about to be cam_curr_frame";
+			*img0 = cam_curr_frame;
+			cout << endl << "img0 is now cam_curr_frame";
 			break;
 		}
-
 
 
 	}
 
 	/////EndWebcam
 	////
+int i, c;
+
+
+CvMemStorage * storage = cvCreateMemStorage(0);
+//storage = new MemStorage();
+/*
 	cout << endl << "Create some windows";
 	namedWindow(rotatedwnd,CV_WINDOW_AUTOSIZE);
 
-    int i, c;
+    
     // create memory storage that will contain all the dynamic data
     //storage = cvCreateMemStorage(0);
+
+	
 	cout << endl << "Create storage";
 //	storage = cvCreateMemStorage(0);
 	storage = new MemStorage(0);
 //	storage = new MemStorage(0);
-/*
-    for( i = 0; names[i] != 0; i++ )
-    {
-        // load i-th image
-        img0 = cvLoadImage( names[i], 1 );
-        if( !img0 )
-        {
-            printf("Couldn't load %s\n", names[i] );
-            continue;
-        }
 
-		*/
+*/
 
-        //img = cvCloneImage( img0 );
+
+
 	//////different func to clone
 
-		cout << endl << "Create the source img from the frame data";
-		img = cvCreateImage(cvSize(640,480),img0.depth(),img0.channels());
+		
+		//img = cvCreateImage(cvSize(640,480),img0.depth(),img0.channels());
+		//img = new Mat(img0.clone());
+		
+		img = new Mat();
+		*img =(img0->clone());
+
+		cout << endl << "Create the source img from the frame data as a matrix";
 		///And instead of using the cvResize we use resize()
 				cout << endl << "Resize";
-		resize(img0, img, cvSize(640,480),0,0,INTER_CUBIC);
-		
-		////
-		//Cvresize(img0,img);
+		//resize(img0, img, cvSize(640,480),0,0,INTER_CUBIC);
+		 findSquares4(*img,storage);		
 
-        // create window and a trackbar (slider) with parent "image" and set callback
-        // (the slider regulates upper threshold, passed to Canny edge detector)
-		/////This was apparently removed
-        cvNamedWindow( camwndname, 1 );
+
 
         // find and draw the squares
 		cout << endl << "Draw some squares, if you find them";
-        drawSquares( IplImage(img), findSquares4( img, storage ) );
+       // drawSquares( IplImage(img), findSquares4( img, storage ) );
 
         // wait for key.
         // Also the function cvWaitKey takes care of event processing
@@ -602,20 +707,26 @@ int main(int argc, char** argv)
 		// release both images
        // cvReleaseImage( &img );
         //cvReleaseImage( &img0 );
+
+		img->release();
+		img0->release();
         // clear memory storage - reset free space position
-        cvClearMemStorage( storage );
-    //    if( (char)c == 27 )
+        //cvClearMemStorage( storage );
+
+
+		delete storage;
+		storage = 0;
+		//    if( (char)c == 27 )
       //      break;
     
-	cvDestroyWindow(croppedwndname);
-    cvDestroyWindow( camwndname );
+	//cvDestroyWindow(croppedwndname);
 
-
+	capture.release();		
+	
 	/////Webcam related
 
-	capture.release();
+
 	//cvReleaseCapture( &capture);
-	cvDestroyWindow(camwndname);
 //	cvDestroyWindow(CORNER_EIG);
 
 
