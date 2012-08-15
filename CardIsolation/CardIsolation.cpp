@@ -292,8 +292,8 @@ CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
 	
 cout << endl << "Timg declared!";
 
-char a;
-cin >> a;
+cvWaitKey(0);
+
 	imshow(camwndname,img1);
 
 
@@ -303,10 +303,6 @@ cin >> a;
 	//timg = img.clone();
 	//*timg = img.clone();
 
-	cout << endl << "Timg  not Cloned!";
-	//Mat timgObj = img1.clone();
-
-	cout << endl << "Cloned!";
 
 //	IplImage timgObj = IplImage(img.clone());
 //	IplImage * timg =&timgObj;
@@ -324,13 +320,24 @@ cout << endl << "gray DECLARED";
 	imshow(camwndname,*gray);
 
 	cvWaitKey(0);
+cout << endl << "Trying to display timg";
+	
+imshow(camwndname,timg);
+
+cout << endl << "Tried to display timg";
+
+cvWaitKey(0);
+
+
 
 
 //	IplImage* gray = cvCreateImage( sz, 8, 1 );
 	//Mat gray(sz.height, sz.width, 1);
 	
 //	Mat pyr(Size(240, 240));
-	Mat pyr(240,240,1);
+//	Mat pyr(240,240,1);
+	Mat pyr(sz.height/2,sz.width/2,1);
+
 cout << endl << "Pyr Created";
 //	IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
 	//Mat pyr(sz.height/2,sz.width/2, 1);
@@ -349,7 +356,6 @@ cout << endl << "tgray Created";
 	///creating a new bounding rectangle to put around the found card
 	//CvRect* rect = new CvRect;
 	//CvRect* cropRect = new CvRect;
-	Rect * rect = new Rect();
 	Rect * cropRect = new Rect();
 
     double s, t;
@@ -378,27 +384,63 @@ cout << endl << "tgray Created";
 //	timg.adjustROI( cvRect(0,0,sz.width,sz.height),);
 	//timg.adjustROI(0,0,
 
-	cout << "Trying for subImg)" ;
-	Mat subImg(timg(Range(0,0),Range(480,480)));
+//	Rect * rect = new Rect(cvPoint(0,0),sz);
+//	Rect * rect = new Rect(0,0,288,288);
+	Rect * rect = new Rect(0,0,timg.cols,timg.rows);
+//	Rect * rect = new Rect(0,0,timg.cols,timg.rows);
+	
+
+
+	cout << endl << "Trying for subImg" ;
+	cout << endl << "timg Rows= " << timg.rows <<  " Columns = " << timg.cols;
+//Mat subImg = (timg(Range(0,0),Range(100,100)));
+
+	Mat *subImg = new Mat();
+	*subImg = (timg(*rect));
+
+
+
+
+
+
+//	Mat subImg(timg(Range(0,0),Range(480,480)));
 		
     // down-scale and upscale the image to filter out the noise
 	
 cout << endl << "about to down";
-//    pyrDown( timg, pyr,sz);
-	pyrDown(subImg,pyr,Size(480,480));
-cout << endl << "about to up";
-    pyrUp( pyr, timg,sz );
-    //tgray = cvCreateImage( sz, 8, 1 );
+
+//pyrDown(*subImg,pyr,Size(subImg->rows/2,subImg->cols/2));
+pyrDown(*subImg,pyr,Size(subImg->cols/2,subImg->rows/2));
+
+
+cout << endl << "Trying to display subImg after PyrDown";
 	
-	//pyrUp(
+imshow(camwndname,*subImg);
+
+cout << endl << "Tried to display subImg";
+cvWaitKey(0);
 
 
+cout << endl << "about to up";
+pyrUp( pyr, *subImg,Size(subImg->cols,subImg->rows) );
+
+cout << endl << "pyrs complete";
+
+
+cout << endl << "Trying to display timg in other window";
+	
+imshow(camwndname,*subImg);
+
+cout << endl << "Tried to display timg";
+
+
+cvWaitKey(0);
     // find squares in every color plane of the image
     for( c = 0; c < 3; c++ )
     {
         // extract the c-th color plane
         cvSetImageCOI( (IplImage*)(&timg), c+1 );
-
+	
 /*	
 
         cvCopy( timg, tgray, 0 );
@@ -616,7 +658,7 @@ int main(int argc, char** argv)
 
 
 		cv::namedWindow(camwndname,1);
-		
+		cv::namedWindow(camwndname,1);
 
 		while (true) {
 		
@@ -630,6 +672,7 @@ int main(int argc, char** argv)
 		}
 		
 		imshow(camwndname,cam_curr_frame);
+		imshow(wndname,cam_curr_frame);
 		//imshow(camwndname, cam_curr_frame); ///Gives us a preview of what the camera is seeing. 
 											///currently freezes upon the switch to ID process.
 
