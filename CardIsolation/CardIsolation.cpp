@@ -257,14 +257,16 @@ CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
 
 	cout << endl << "Contours";
 	////So cv::Seq is not what we want? Still using a cvSeq of....unknown
+	/// We may need to swap to a vector (?)
 	CvSeq* contours = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
 //	Seq* contours = CreateSeq(
-	cout << endl << "Contours Created";
+	cout << endl << "contours Created";
 
 
 	int i, c, l, N=11;
 
 //	cv::Size sz = cvSize(img.cols() & -2, img.rows() & -2);
+	
 	Size sz = img1.size();
 
 	
@@ -279,15 +281,7 @@ CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
 
 	cout << endl << "findSquares4: set up a bunch of temp images";
 
-
-	
-	//    IplImage* timg = cvCloneImage( img ); // make a copy of input image
-
-	
-//	Mat *timg = 0;		
-//		(sz,8,1);  // make a copy of input image
-//	timg = new Mat(sz,8,1);
-
+	/////Make a clone of the input image
 	Mat timg = img1.clone();
 	
 cout << endl << "Timg declared!";
@@ -296,26 +290,10 @@ cvWaitKey(0);
 
 	imshow(camwndname,img1);
 
-
-
-//img1.clone();
-
-	//timg = img.clone();
-	//*timg = img.clone();
-
-
-//	IplImage timgObj = IplImage(img.clone());
-//	IplImage * timg =&timgObj;
-	////Remember we're using Mat's now.
 	Mat * gray = new Mat(sz,1);
 cout << endl << "gray DECLARED";
 	
-
-
-
 	cvtColor(timg,*gray,CV_RGB2GRAY);
-
-
 	cout << endl << "gray Created";
 	imshow(camwndname,*gray);
 
@@ -343,11 +321,11 @@ cout << endl << "Pyr Created";
 	//Mat pyr(sz.height/2,sz.width/2, 1);
 	
 	
-	Mat tgray(sz.width,sz.height,1);
+//	Mat tgray(sz.width,sz.height,1);
 //	IplImage* tgray;
   
 	
-cout << endl << "tgray Created";
+//cout << endl << "tgray Created";
 
 
 	CvSeq* result;
@@ -395,52 +373,51 @@ cout << endl << "tgray Created";
 	cout << endl << "timg Rows= " << timg.rows <<  " Columns = " << timg.cols;
 //Mat subImg = (timg(Range(0,0),Range(100,100)));
 
-	Mat *subImg = new Mat();
-	*subImg = (timg(*rect));
+//	Mat *subImg = new Mat();
+//	*subImg = (timg(*rect));
 
-
-
-
-
-
-//	Mat subImg(timg(Range(0,0),Range(480,480)));
+	//	Mat subImg(timg(Range(0,0),Range(480,480)));
 		
     // down-scale and upscale the image to filter out the noise
 	
 cout << endl << "about to down";
 
-//pyrDown(*subImg,pyr,Size(subImg->rows/2,subImg->cols/2));
-pyrDown(*subImg,pyr,Size(subImg->cols/2,subImg->rows/2));
 
+//pyrDown(*gray,pyr,Size(subImg->cols/2,subImg->rows/2));
+pyrDown(*gray,pyr,Size(gray->cols/2,gray->rows/2));
 
 cout << endl << "Trying to display subImg after PyrDown";
 	
-imshow(camwndname,*subImg);
+imshow(camwndname,*gray);
 
-cout << endl << "Tried to display subImg";
+cout << endl << "Tried to display new gray";
 cvWaitKey(0);
 
 
 cout << endl << "about to up";
-pyrUp( pyr, *subImg,Size(subImg->cols,subImg->rows) );
+pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
 
 cout << endl << "pyrs complete";
 
 
-cout << endl << "Trying to display timg in other window";
+cout << endl << "Trying to display gray'd in other window";
 	
-imshow(camwndname,*subImg);
+imshow(camwndname,*gray);
 
 cout << endl << "Tried to display timg";
 
-
+cout << timg.channels() << " Channels " << endl;
 cvWaitKey(0);
+
+///Looks like there are 3 channels on this.
     // find squares in every color plane of the image
     for( c = 0; c < 3; c++ )
     {
         // extract the c-th color plane
-        cvSetImageCOI( (IplImage*)(&timg), c+1 );
-	
+//        cvSetImageCOI( (IplImage*)(&timg), c+1 );
+		timg.ptr(0);		
+
+
 /*	
 
         cvCopy( timg, tgray, 0 );
