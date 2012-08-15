@@ -255,12 +255,14 @@ double angle( CvPoint* pt1, CvPoint* pt2, CvPoint* pt0 )
 CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
 {
 
-	cout << endl << "Contours";
+//	cout << endl << "Contours";
 	////So cv::Seq is not what we want? Still using a cvSeq of....unknown
 	/// We may need to swap to a vector (?)
-	CvSeq* contours = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
-//	Seq* contours = CreateSeq(
-	cout << endl << "contours Created";
+	//CvSeq* contours = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+/////Instead we will use a vector per OpenCV.org example
+//	vector<vector<Point>> contours;
+
+//	cout << endl << "contours Created";
 
 
 	int i, c, l, N=11;
@@ -404,20 +406,46 @@ cout << endl << "Trying to display gray'd in other window";
 	
 imshow(camwndname,*gray);
 
-cout << endl << "Tried to display timg";
+cout << endl << "Tried to display gray";
 
-cout << timg.channels() << " Channels " << endl;
+cout << gray->channels() << " Channels " << endl;
 cvWaitKey(0);
 
 ///Looks like there are 3 channels on this.
     // find squares in every color plane of the image
-    for( c = 0; c < 3; c++ )
-    {
+  //  for( c = 0; c < 3; c++ )
+    //{
         // extract the c-th color plane
 //        cvSetImageCOI( (IplImage*)(&timg), c+1 );
-		timg.ptr(0);		
 
 
+////Edge detection results?
+		vector<vector<Point>> contours;
+		Mat canny_output;
+		vector<Vec4i> hierarchy;
+
+
+
+Canny(*gray, canny_output, 100, 200, 3);
+
+
+
+//threshold(*gray, canny_output, 100,100,CV_THRESH_BINARY);
+
+//cout << endl << "Trying to display canny_output";	
+//imshow(camwndname,canny_output);
+//cout << endl << "Tried to display canny_output";
+//cvWaitKey(0);
+
+cout << " find contours " << endl;
+cvWaitKey(0);
+//findContours(canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
+
+//findContours(canny_output,contours,hierarchy,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
+findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
+
+cout << endl << "Did we find contours?";
+cvWaitKey(0);
 /*	
 
         cvCopy( timg, tgray, 0 );
@@ -448,20 +476,28 @@ cvWaitKey(0);
                 CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
 
             // test each contour
+			*/
            while( contours )
             {
                 // approximate contour with accuracy proportional
                 // to the contour perimeter
-                result = cvApproxPoly( contours, sizeof(CvContour), storage,
-                    CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.02, 0 );
-                // square contours should have 4 vertices after approximation
+//                result = cvApproxPoly( contours, sizeof(CvContour), storage,
+  //                  CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.02, 0 );
+
+				// square contours should have 4 vertices after approximation
                 // relatively large area (to filter out noisy contours)
                 // and be convex.
                 // Note: absolute value of an area is used because
                 // area may be positive or negative - in accordance with the
                 // contour orientation
 				//int largestContourAreaFound = 0;
+				vector< vector<Point>> results;
+
 				
+				approxPolyDP(contours ,results, 5
+
+
+
 				////Adapting code, experimenting with a 
 				////bouding rect
 				*rect = cvBoundingRect(result);
@@ -526,8 +562,8 @@ cvWaitKey(0);
 			////End the contour finding. 
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
         }
-*/
-    }
+
+    
 
 /*
 		/////This is where we want to make our own sequence
