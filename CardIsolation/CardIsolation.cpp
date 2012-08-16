@@ -24,6 +24,7 @@
 #include <math.h>
 #include <string.h>
 #include <sys/timeb.h>
+#include "C:\OpenCV2.1\src\cv\_cvimgproc.h"
 
 using namespace std;
 using namespace cv;
@@ -39,8 +40,6 @@ int thresh = 50;
 
 
 
-//const char* camwndname = "Input Image Cam";
-
 
 
 const char* camwndname = "Input Image Cam";
@@ -49,6 +48,9 @@ const char* croppedwndname = "Cropped Window";
 const char* rotatedwnd = "Attempting to Rotate";
 
 Mat* rotateDisplay;
+
+///Function declaration
+vector<Rect> convertContoursToSqr(vector<vector<Point>>&);
 
 
 ///With any luck this should accept the square's sequence and the bounding box in rect
@@ -240,42 +242,38 @@ double angle( CvPoint* pt1, CvPoint* pt2, CvPoint* pt0 )
     return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
 }
 
+
+
 // returns sequence of squares detected on the image.
 // the sequence is stored in the specified memory storage
+///Should change this to a vector I think.
 
-/////Originally this took an IplImage pointer but we're going to try to swap to a Mat
-
-//CvSeq* findSquares4( IplImage* img, CvMemStorage* storage )
-
-
-
-///We need this to be void temporarily
-//CvSeq* findSquares4( Mat img, MemStorage* storage )
-
-CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
+//CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
+vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 {
 
-//	cout << endl << "Contours";
+	//	cout << endl << "Contours";
 	////So cv::Seq is not what we want? Still using a cvSeq of....unknown
 	/// We may need to swap to a vector (?)
 	//CvSeq* contours = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
-/////Instead we will use a vector per OpenCV.org example
-//	vector<vector<Point>> contours;
+	/////Instead we will use a vector per OpenCV.org example
 
-//	cout << endl << "contours Created";
+	vector<vector<Point>> contours;
+
+	//	cout << endl << "contours Created";
 
 
 	int i, c, l, N=11;
 
-//	cv::Size sz = cvSize(img.cols() & -2, img.rows() & -2);
-	
+	//	cv::Size sz = cvSize(img.cols() & -2, img.rows() & -2);
+
 	Size sz = img1.size();
 
-	
 
-  //  CvSeq* contours;
-    //int i, c, l, N = 11;
-//	int i, c, l, N = 2;
+
+	//  CvSeq* contours;
+	//int i, c, l, N = 11;
+	//	int i, c, l, N = 2;
 
 
 	//CvSize sz = cvSize( img.cols() & -2, img.rows() & -2 );
@@ -285,199 +283,160 @@ CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
 
 	/////Make a clone of the input image
 	Mat timg = img1.clone();
-	
-cout << endl << "Timg declared!";
 
-cvWaitKey(0);
+	cout << endl << "Timg declared!";
+
+	cvWaitKey(0);
 
 	imshow(camwndname,img1);
 
 	Mat * gray = new Mat(sz,1);
-cout << endl << "gray DECLARED";
-	
+	cout << endl << "gray DECLARED";
+
 	cvtColor(timg,*gray,CV_RGB2GRAY);
 	cout << endl << "gray Created";
 	imshow(camwndname,*gray);
 
 	cvWaitKey(0);
-cout << endl << "Trying to display timg";
-	
-imshow(camwndname,timg);
+	cout << endl << "Trying to display timg";
 
-cout << endl << "Tried to display timg";
+	imshow(camwndname,timg);
 
-cvWaitKey(0);
+	cout << endl << "Tried to display timg";
 
-
+	cvWaitKey(0);
 
 
-//	IplImage* gray = cvCreateImage( sz, 8, 1 );
+
+
+	//	IplImage* gray = cvCreateImage( sz, 8, 1 );
 	//Mat gray(sz.height, sz.width, 1);
-	
-//	Mat pyr(Size(240, 240));
-//	Mat pyr(240,240,1);
+
+	//	Mat pyr(Size(240, 240));
+	//	Mat pyr(240,240,1);
 	Mat pyr(sz.height/2,sz.width/2,1);
 
-cout << endl << "Pyr Created";
-//	IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
+	cout << endl << "Pyr Created";
+	//	IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
 	//Mat pyr(sz.height/2,sz.width/2, 1);
-	
-	
-//	Mat tgray(sz.width,sz.height,1);
-//	IplImage* tgray;
-  
-	
-//cout << endl << "tgray Created";
+
+
+	//	Mat tgray(sz.width,sz.height,1);
+	//	IplImage* tgray;
+
+
+	//cout << endl << "tgray Created";
 
 
 	CvSeq* result;
 
-	
+
 	///creating a new bounding rectangle to put around the found card
 	//CvRect* rect = new CvRect;
 	//CvRect* cropRect = new CvRect;
 	Rect * cropRect = new Rect();
 
-    double s, t;
-    // create empty sequence that will contain points -
-    // 4 points per square (the square's vertices)
+	double s, t;
+	// create empty sequence that will contain points -
+	// 4 points per square (the square's vertices)
+
+	//cv::Seq * squares = new Seq(storage,sizeof(CvSeq));
+	// select the maximum ROI in the image
+	// with the width and height divisible by 2
+	//
 
 
 
-	//////CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), *MemStorage(storage) );
-		//CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), *CvMemStorage(storage) );
-
-	cout << endl << "creating seq";
-	CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
-
-	
-	
-
-//	cv::Seq * squares = new Seq(storage,sizeof(CvSeq));
-    // select the maximum ROI in the image
-    // with the width and height divisible by 2
-//
-		
-
-
-    //cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
-//	timg.adjustROI( cvRect(0,0,sz.width,sz.height),);
+	//cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
+	//	timg.adjustROI( cvRect(0,0,sz.width,sz.height),);
 	//timg.adjustROI(0,0,
 
-//	Rect * rect = new Rect(cvPoint(0,0),sz);
-//	Rect * rect = new Rect(0,0,288,288);
+	//	Rect * rect = new Rect(cvPoint(0,0),sz);
+	//	Rect * rect = new Rect(0,0,288,288);
 	Rect * rect = new Rect(0,0,timg.cols,timg.rows);
-//	Rect * rect = new Rect(0,0,timg.cols,timg.rows);
-	
+	//	Rect * rect = new Rect(0,0,timg.cols,timg.rows);
+
 
 
 	cout << endl << "Trying for subImg" ;
 	cout << endl << "timg Rows= " << timg.rows <<  " Columns = " << timg.cols;
-//Mat subImg = (timg(Range(0,0),Range(100,100)));
+	// down-scale and upscale the image to filter out the noise
 
-//	Mat *subImg = new Mat();
-//	*subImg = (timg(*rect));
-
-	//	Mat subImg(timg(Range(0,0),Range(480,480)));
-		
-    // down-scale and upscale the image to filter out the noise
-	
-cout << endl << "about to down";
+	cout << endl << "about to down";
 
 
-//pyrDown(*gray,pyr,Size(subImg->cols/2,subImg->rows/2));
-pyrDown(*gray,pyr,Size(gray->cols/2,gray->rows/2));
+	//pyrDown(*gray,pyr,Size(subImg->cols/2,subImg->rows/2));
+	pyrDown(*gray,pyr,Size(gray->cols/2,gray->rows/2));
 
-cout << endl << "Trying to display subImg after PyrDown";
-	
-imshow(camwndname,*gray);
+	cout << endl << "Trying to display subImg after PyrDown";
 
-cout << endl << "Tried to display new gray";
-cvWaitKey(0);
+	imshow(camwndname,*gray);
 
-
-cout << endl << "about to up";
-pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
-
-cout << endl << "pyrs complete";
+	cout << endl << "Tried to display new gray";
+	cvWaitKey(0);
 
 
-cout << endl << "Trying to display gray'd in other window";
-	
-imshow(camwndname,*gray);
+	cout << endl << "about to up";
+	pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
 
-cout << endl << "Tried to display gray";
-
-cout << gray->channels() << " Channels " << endl;
-cvWaitKey(0);
-
-///Looks like there are 3 channels on this.
-    // find squares in every color plane of the image
-  //  for( c = 0; c < 3; c++ )
-    //{
-        // extract the c-th color plane
-//        cvSetImageCOI( (IplImage*)(&timg), c+1 );
+	cout << endl << "pyrs complete";
 
 
-////Edge detection results?
-		vector<vector<Point>> contours;
-		Mat canny_output;
-		vector<Vec4i> hierarchy;
+	cout << endl << "Trying to display gray'd in other window";
+
+	imshow(camwndname,*gray);
+
+	cout << endl << "Tried to display gray";
+
+	cout << gray->channels() << " Channels " << endl;
+	cvWaitKey(0);
+
+
+	////Switching to a purely Canny based detection
+	////holder image
+	Mat canny_output;
+	Canny(*gray, canny_output, 100, 200, 3);
+//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
+
+	cout << " find contours " << endl;
+	imshow(camwndname,canny_output);
+	cvWaitKey(0);
 
 
 
-Canny(*gray, canny_output, 100, 200, 3);
 
-
-
-//threshold(*gray, canny_output, 100,100,CV_THRESH_BINARY);
-
-//cout << endl << "Trying to display canny_output";	
-//imshow(camwndname,canny_output);
-//cout << endl << "Tried to display canny_output";
-//cvWaitKey(0);
-
-cout << " find contours " << endl;
-cvWaitKey(0);
-//findContours(canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
-
-//findContours(canny_output,contours,hierarchy,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
+///This works
 findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
+///this is unknown
 
-cout << endl << "Did we find contours?";
+//	vector<Vec4i> hierarchy;
+//	findContours(canny_output,contours, hierarchy, CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE);
+
+	cout << endl << "Did we find contours? ";
+	cout  << contours.size() <<  "Found" << endl;
+	cvWaitKey(0);
+
+	////Store the found squares here
+	vector<Rect>boundRect(contours.size());
+
+		cout << endl << " converting " <<endl ;
+		
+		boundRect =	convertContoursToSqr(contours);
+
+		
+		///srcConts should be a collection of contours from the "Found Contours"
+
+
+cout << "Did that crash?" << endl;
 cvWaitKey(0);
-/*	
 
-        cvCopy( timg, tgray, 0 );
 
-        // try several threshold levels
-        for( l = 0; l < N; l++ )
-        {
-            // hack: use Canny instead of zero threshold level.
-            // Canny helps to catch squares with gradient shading
-            if( l == 0 )
-            {
-                // apply Canny. Take the upper threshold from slider
-                // and set the lower to 0 (which forces edges merging)
-                cvCanny( tgray, gray, 0, thresh, 5 );
-                // dilate canny output to remove potential
-                // holes between edge segments
-                cvDilate( gray, gray, 0, 1 );
-            }
-            else
-            {
-                // apply threshold if l!=0:
-                //     tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
-                cvThreshold( tgray, gray, (l+1)*255/N, 255, CV_THRESH_BINARY );
-            }
+	
+cout << "Rects found: " << boundRect.size();
+cvWaitKey(0);
 
-            // find contours and store them all as a list
-            cvFindContours( gray, storage, &contours, sizeof(CvContour),
-                CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
-
-            // test each contour
-			*/
-           while( contours )
+	//while( contours )
+		/*	   while(true)
             {
                 // approximate contour with accuracy proportional
                 // to the contour perimeter
@@ -491,10 +450,10 @@ cvWaitKey(0);
                 // area may be positive or negative - in accordance with the
                 // contour orientation
 				//int largestContourAreaFound = 0;
-				vector< vector<Point>> results;
+		//		vector< vector<Point>> results;
 
 				
-				approxPolyDP(contours ,results, 5
+		//		approxPolyDP(contours ,results, 5
 
 
 
@@ -555,13 +514,14 @@ cvWaitKey(0);
 
                 // take the next contour
 				
-                contours = contours->h_next;
+//                contours = contours->h_next;
 				
             }
 			
 			////End the contour finding. 
 			//rect.x = CvPoint(cvGetSeqElem(squares,0));
         }
+	}
 
     
 
@@ -593,14 +553,63 @@ imshow("Rotated Window",*rotateDisplay);
     cvReleaseImage( &tgray );
     cvReleaseImage( &timg );
 */
-    return squares;
-	
+   // return squares;
+	return boundRect;
 }
 
 
+vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
+
+	///srcConts should be a collection of contours from the "Found Contours"
+	vector<vector <Point>> contours_poly(srcConts.size());
+	vector<Rect> boundRect(srcConts.size());
+	cout << endl << "SrcCounts size: " << srcConts.size();
+	cout << endl << "fndSquares size: " << boundRect.size();
+	cout << endl << "contours_poly size: " << contours_poly.size();
+
+
+
+	for (int p = 0; p < srcConts.size(); p++)
+	{
+	
+		approxPolyDP(Mat(srcConts[p]),contours_poly[p],.03,true);
+		boundRect[p]= boundingRect(Mat(contours_poly[p]));
+
+		
+
+
+	}
+
+
+
+
+
+//	approxPolyDP(Mat(srcConts[0]),contours_poly[0],3,true);
+
+	cout << endl << "Loop finished";
+	cout << endl << "fndSquares size: " << boundRect.size();
+return boundRect;
+}
+
+
+
+
 // the function draws all the squares in the image
-void drawSquares( IplImage img, CvSeq* squares )
+//void drawSquares( IplImage img, CvSeq* squares )
+void drawSquares( Mat img, vector<Rect> sq)
 {
+
+
+	for(size_t i = 0, i<sq.size(),i++)
+	{
+	
+		const Point* p = &sq[i][0];
+		int n = (int)sq[i].size();
+		polylines(img,&,&n,1,true, Scalar(0,255,0), 3, CV_AA);
+	}
+
+
+
 	/*
 
 	cout << endl << "DrawSquares: create the reader, and then clone the img" ;
@@ -746,13 +755,20 @@ CvMemStorage * storage = cvCreateMemStorage(0);
 		///And instead of using the cvResize we use resize()
 				cout << endl << "Resize";
 		//resize(img0, img, cvSize(640,480),0,0,INTER_CUBIC);
-		 findSquares4(*img,storage);		
+
+				/////we're going to modify it so findSquares returns
+				////a vector of rects
+
+		 vector<Rect> sq = findSquares4(*img,storage);		
 
 
 
         // find and draw the squares
 		cout << endl << "Draw some squares, if you find them";
        // drawSquares( IplImage(img), findSquares4( img, storage ) );
+
+
+		drawSquares(*img, sq);
 
         // wait for key.
         // Also the function cvWaitKey takes care of event processing
