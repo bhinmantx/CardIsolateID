@@ -572,7 +572,12 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 	for (int p = 0; p < srcConts.size(); p++)
 	{
 	
-		approxPolyDP(Mat(srcConts[p]),contours_poly[p],.03,true);
+		approxPolyDP(Mat(srcConts[p]),contours_poly[p], arcLength(Mat(srcConts[p]),true)* .02,true);
+
+		if(contours_poly.size() == 4 && fabs(contourArea(Mat(contours_poly)))>1000 && 
+
+
+
 		boundRect[p]= boundingRect(Mat(contours_poly[p]));
 
 		
