@@ -563,6 +563,8 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 	///srcConts should be a collection of contours from the "Found Contours"
 	vector<vector <Point>> contours_poly(srcConts.size());
 	vector<Rect> boundRect(srcConts.size());
+vector<Point> approx;
+
 	cout << endl << "SrcCounts size: " << srcConts.size();
 	cout << endl << "fndSquares size: " << boundRect.size();
 	cout << endl << "contours_poly size: " << contours_poly.size();
@@ -574,11 +576,29 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 	
 		approxPolyDP(Mat(srcConts[p]),contours_poly[p], arcLength(Mat(srcConts[p]),true)* .02,true);
 
-		if(contours_poly.size() == 4 && fabs(contourArea(Mat(contours_poly)))>1000 && 
+		if((contours_poly.size() == 4) && fabs(contourArea(Mat(contours_poly)))>1000 && isContourConvex(Mat(contours_poly)))
+		
+		{
+				    double maxCosine = 0;
+
+                    for( int j = 2; j < 5; j++ )
+                    {
+                        // find the maximum cosine of the angle between joint edges
+                        double cosine = fabs(angle(contours_poly[j%4], contours_poly[j-2], contours_poly[j-1]));
+                        maxCosine = MAX(maxCosine, cosine);
+                    }
+
+                    // if cosines of all angles are small
+                    // (all angles are ~90 degree) then write quandrange
+                    // vertices to resultant sequence
+                    if( maxCosine < 0.3 )
+                    //squares.push_back(contours_poly);
+					boundRect[p] = boundingRect(Mat(contours_poly[p]))
+		
+		}
 
 
 
-		boundRect[p]= boundingRect(Mat(contours_poly[p]));
 
 		
 
@@ -587,7 +607,7 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 
 
 
-
+				//boundRect[p]= boundingRect(Mat(contours_poly[p]));
 
 //	approxPolyDP(Mat(srcConts[0]),contours_poly[0],3,true);
 
@@ -605,7 +625,7 @@ void drawSquares( Mat img, vector<Rect> sq)
 {
 
 
-	for(size_t i = 0, i<sq.size(),i++)
+	for(size_t i = 0; i<sq.size();i++)
 	{
 	
 		const Point* p = &sq[i][0];
