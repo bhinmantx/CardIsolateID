@@ -233,7 +233,8 @@ void  displayCropped(CvRect *srcRect, Mat cimg)
 // helper function:
 // finds a cosine of angle between vectors
 // from pt0->pt1 and from pt0->pt2
-double angle( CvPoint* pt1, CvPoint* pt2, CvPoint* pt0 )
+//double angle( CvPoint* pt1, CvPoint* pt2, CvPoint* pt0 )
+double angle( Point* pt1, Point* pt2, Point* pt0 )
 {
     double dx1 = pt1->x - pt0->x;
     double dy1 = pt1->y - pt0->y;
@@ -417,8 +418,8 @@ findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
 	cvWaitKey(0);
 
 	////Store the found squares here
-	vector<Rect>boundRect(contours.size());
-
+//	vector<Rect>boundRect(contours.size());
+	vector<Rect> boundRect;
 		cout << endl << " converting " <<endl ;
 		
 		boundRect =	convertContoursToSqr(contours);
@@ -562,7 +563,7 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 
 	///srcConts should be a collection of contours from the "Found Contours"
 	vector<vector <Point>> contours_poly(srcConts.size());
-	vector<Rect> boundRect(srcConts.size());
+	vector<Rect> boundRect;
 vector<Point> approx;
 
 	cout << endl << "SrcCounts size: " << srcConts.size();
@@ -571,12 +572,14 @@ vector<Point> approx;
 
 
 
-	for (int p = 0; p < srcConts.size(); p++)
+	for (size_t p = 0; p < srcConts.size(); p++)
 	{
-	
-		approxPolyDP(Mat(srcConts[p]),contours_poly[p], arcLength(Mat(srcConts[p]),true)* .02,true);
-
-		if((contours_poly.size() == 4) && fabs(contourArea(Mat(contours_poly)))>1000 && isContourConvex(Mat(contours_poly)))
+		cout << endl << "On iteration " << p << " Of p";
+		//approxPolyDP(Mat(srcConts[p]),contours_poly[p], arcLength(Mat(srcConts[p]),true)* .02,true);
+		
+		approxPolyDP(Mat(srcConts[p]), approx, arcLength(Mat(srcConts[p]), true)*0.02, true);
+		
+		if(approx.size() == 4 && fabs(contourArea(Mat(approx)))>1000 && isContourConvex(Mat(approx)))
 		
 		{
 				    double maxCosine = 0;
@@ -584,18 +587,31 @@ vector<Point> approx;
                     for( int j = 2; j < 5; j++ )
                     {
                         // find the maximum cosine of the angle between joint edges
-                        double cosine = fabs(angle(contours_poly[j%4], contours_poly[j-2], contours_poly[j-1]));
+                        double cosine = fabs(angle(&approx[j%4], &approx[j-2], &approx[j-1]));
+						cout << endl << "Cosine is " << cosine;
                         maxCosine = MAX(maxCosine, cosine);
-                    }
+						cout << "J: " << j;
+					}
+
 
                     // if cosines of all angles are small
                     // (all angles are ~90 degree) then write quandrange
                     // vertices to resultant sequence
                     if( maxCosine < 0.3 )
-                    //squares.push_back(contours_poly);
-					boundRect[p] = boundingRect(Mat(contours_poly[p]))
-		
-		}
+					{
+
+						//squares.push_back(contours_poly);
+
+								boundRect.push_back (boundingRect(Mat(srcConts[p])));
+				
+						//boundRect[p] = boundingRect(Mat(srcConts[p]));
+cout << endl << "I apparently found a rect! it is area ";
+					 //cout << boundRect[p].area();
+
+//					 cout << boundRect.end().area();
+
+					}
+			}
 
 
 
@@ -612,7 +628,8 @@ vector<Point> approx;
 //	approxPolyDP(Mat(srcConts[0]),contours_poly[0],3,true);
 
 	cout << endl << "Loop finished";
-	cout << endl << "fndSquares size: " << boundRect.size();
+	cout << endl << "boundRect size: " << boundRect.size();
+
 return boundRect;
 }
 
@@ -623,14 +640,36 @@ return boundRect;
 //void drawSquares( IplImage img, CvSeq* squares )
 void drawSquares( Mat img, vector<Rect> sq)
 {
-
-
 	for(size_t i = 0; i<sq.size();i++)
 	{
-	
-		const Point* p = &sq[i][0];
-		int n = (int)sq[i].size();
-		polylines(img,&,&n,1,true, Scalar(0,255,0), 3, CV_AA);
+		cout << endl << "I drew a square";
+		/////////////////////////////////////////////
+		Point pts[4];
+		pts[0] = Point(sq[i].x,sq[i].y);
+		pts[1] = Point(sq[i].x+sq[i].width,sq[i].y);
+		pts[2] = Point(sq[i].x,sq[i].y+sq[i].height);
+		pts[3] = Point(sq[i].x+sq[i].width,sq[i].y+sq[i].height);
+		int n =4;
+		//polylines(img,&pts,
+
+//		int n = 4;
+//		Point pts[3];
+
+//		const Point* p = &sq[i][0];
+	//	int n = (int)sq[i].size();
+//		polylines(img,&,&n,1,true, Scalar(0,255,0), 3, CV_AA);
+
+		
+//////////////////////////
+//for( size_t i = 0; i < squares.size(); i++ )
+  //  {
+    //    const Point* p = &squares[i][0];
+      //  int n = (int)squares[i].size();
+        //polylines(image, &p, &n, 1, true, Scalar(0,255,0), 3, CV_AA);
+
+
+
+
 	}
 
 
