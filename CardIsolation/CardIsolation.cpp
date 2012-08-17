@@ -50,7 +50,64 @@ const char* rotatedwnd = "Attempting to Rotate";
 Mat* rotateDisplay;
 
 ///Function declaration
-vector<Rect> convertContoursToSqr(vector<vector<Point>>&);
+
+double angle( Point* pt1, Point* pt2, Point* pt0 );
+vector<Rect> convertContoursToSqr(vector<vector<Point> > &test);
+//vector<Point> rectFromPoints(<vector>Point coords);
+
+vector<Point> polyFromPoints(vector<Point>& coords);
+
+
+////Determines which points are in what positions
+////for the purpose of making a (from top left to top right to lower right to lower left)
+////Rectangle. This means identifying the corresponding corners of the given points
+///and using those to calculate the x,y,width,height of a Rect
+
+vector<Point> polyFromPoints(vector<Point>& coords)
+{
+
+	if(coords.size() < 4){
+		fprintf(stderr, "ERROR: not enough coords... Exiting\n");
+		return coords;
+	}
+	else
+	{
+		/////Find point "P" which is our upper left point
+		int P = 0;
+		for(int i =0;i<4;i++)
+		{
+			////looking for point with lowest x,y vals
+			if (coords[i].y < coords[P].y)
+				P = i;
+			else if (coords[P].y == coords[i].y && coords[P].x > coords[i].x)
+				P = i;
+		}
+	
+		///We now have "P" the vector index of the upper left corner. 
+		///Now we calculate which angles have the smallest angle between the vector 
+		///created from P and P.x+1,P.y) and P to the comparison point. 
+
+		vector<double> angles;
+
+		for(int j=0;j<4;j++)
+		{
+		
+			if(j != P)
+			{
+			
+				angles[j] = abs(angle(&Point(coords[P].x+1,coords[P].y), &coords[j], &coords[P]));
+				cout << endl<< "Angle: " << angles[j];
+			}
+			else angles[P] = -1; 
+
+		}////finish making those angles
+
+
+	}
+
+
+	return coords;
+}
 
 
 ///With any luck this should accept the square's sequence and the bounding box in rect
@@ -600,10 +657,16 @@ vector<Point> approx;
                     if( maxCosine < 0.3 )
 					{
 
-						//squares.push_back(contours_poly);
-
+									///the following works but not point to point
 								boundRect.push_back (boundingRect(Mat(srcConts[p])));
-				
+								cout << endl << "X, Y of 0" << approx[0].x << " " << approx[0].y;
+								cout << endl << "X, Y of 0" << approx[1].x << " " << approx[1].y;
+								cout << endl << "X, Y of 0" << approx[2].x << " " << approx[2].y;
+								cout << endl << "X, Y of 0" << approx[3].x << " " << approx[3].y;
+								
+								////Need to implement this to be safe
+								//polyFromPoints(approx);
+
 						//boundRect[p] = boundingRect(Mat(srcConts[p]));
 cout << endl << "I apparently found a rect! it is area ";
 					 //cout << boundRect[p].area();
@@ -640,6 +703,7 @@ return boundRect;
 //void drawSquares( IplImage img, CvSeq* squares )
 void drawSquares( Mat img, vector<Rect> sq)
 {
+	int  scalarColorB = 0;
 	for(size_t i = 0; i<sq.size();i++)
 	{
 		cout << endl << "I drew a square";
@@ -650,6 +714,19 @@ void drawSquares( Mat img, vector<Rect> sq)
 		pts[2] = Point(sq[i].x,sq[i].y+sq[i].height);
 		pts[3] = Point(sq[i].x+sq[i].width,sq[i].y+sq[i].height);
 		int n =4;
+		
+		line(img,pts[0],pts[1],Scalar(scalarColorB,255,0),4,8,0);
+
+		line(img,pts[1],pts[3],Scalar(scalarColorB,255,0),4,8,0);
+
+		line(img,pts[3],pts[2],Scalar(scalarColorB,255,0),4,8,0);
+
+		line(img,pts[2],pts[0],Scalar(scalarColorB,255,0),4,8,0);
+		cout << endl << "Scalar color: " << scalarColorB; 
+		scalarColorB = 255 - scalarColorB;
+		imshow(camwndname,img);
+		waitKey(0);
+		
 		//polylines(img,&pts,
 
 //		int n = 4;
