@@ -52,42 +52,77 @@ Mat* rotateDisplay;
 ///Function declaration
 
 double angle( Point* pt1, Point* pt2, Point* pt0 );
-vector<Rect> convertContoursToSqr(vector<vector<Point> > &test);
+
+vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts);
+vector<vector<Point> > findCards( Mat img1);
+
+void convertContoursToPts(vector<vector<Point> > &srcConts,vector<vector<Point> > * foundSquares);
+//vector<vector<Point> >* convertContoursToPts(vector<vector<Point> > &srcConts,vector<vector<Point> > * foundSquares);
+
 //vector<Point> rectFromPoints(<vector>Point coords);
 
-vector<Point> polyFromPoints(vector<Point>& coords);
+vector<Point> polyFromPoints(vector<Point>& coordpoints);
 
-
+void drawCardLines(vector<vector<Point> > pts, Mat * img);
 ////Determines which points are in what positions
 ////for the purpose of making a (from top left to top right to lower right to lower left)
 ////Rectangle. This means identifying the corresponding corners of the given points
 ///and using those to calculate the x,y,width,height of a Rect
 
-vector<Point> polyFromPoints(vector<Point>& coords)
+
+
+
+void drawCardLines(vector<vector<Point> > pts, Mat * img)
+{
+////takes a vector of vectors to points.
+	cout << endl << "I see " << pts.size() << " many likely shapes in this";
+
+	for(int q = 0; q < pts.size(); q++)
+	{
+		///we move through the vectors, which SHOULD contain 4 points each. SHOULD
+		cout << endl << "I see " << pts[q].size() << " points in " << q;
+		////Probably fastest just to draw every line, assuming there are 4 points
+		cv::line(*img,pts[q][0],pts[q][1],Scalar(255,0,0),4,8,0);
+		cv::line(*img,pts[q][1],pts[q][2],Scalar(0,255,0),4,8,0);
+		cv::line(*img,pts[q][2],pts[q][3],Scalar(0,0,255),4,8,0);
+		cv::line(*img,pts[q][3],pts[q][0],Scalar(0,255,255),4,8,0);
+	}
+
+
+}
+
+
+
+
+vector<Point> polyFromPoints(vector<Point>& coordpoints)
 {
 
-	if(coords.size() < 4){
-		fprintf(stderr, "ERROR: not enough coords... Exiting\n");
-		return coords;
+	if(coordpoints.size() < 4){
+		fprintf(stderr, "ERROR: not enough coordpoints... Exiting\n");
+		return coordpoints;
 	}
 	else
 	{
+		cout << endl << "coordSize: " << coordpoints.size();
+
+		cout << endl << "Beginning point analysis";
 		/////Find point "P" which is our upper left point
 		int P = 0;
 		for(int i =0;i<4;i++)
 		{
 			////looking for point with lowest x,y vals
-			if (coords[i].y < coords[P].y)
+			cout << endl<< "CoordPoints[" << i << "]: y: " << coordpoints[i].y << "x: " << coordpoints[i].x;
+			if (coordpoints[i].y < coordpoints[P].y)
 				P = i;
-			else if (coords[P].y == coords[i].y && coords[P].x > coords[i].x)
+			else if (coordpoints[P].y == coordpoints[i].y && coordpoints[P].x > coordpoints[i].x)
 				P = i;
 		}
 	
 		///We now have "P" the vector index of the upper left corner. 
 		///Now we calculate which angles have the smallest angle between the vector 
 		///created from P and P.x+1,P.y) and P to the comparison point. 
-
-		vector<double> angles;
+cout << endl<< "Loop complete. Now dealing with angles" <<endl;
+		vector<double> angles(4);
 
 		for(int j=0;j<4;j++)
 		{
@@ -95,7 +130,7 @@ vector<Point> polyFromPoints(vector<Point>& coords)
 			if(j != P)
 			{
 			
-				angles[j] = abs(angle(&Point(coords[P].x+1,coords[P].y), &coords[j], &coords[P]));
+				angles[j] = abs(angle(&Point(coordpoints[P].x+1,coordpoints[P].y), &coordpoints[j], &coordpoints[P]));
 				cout << endl<< "Angle: " << angles[j];
 			}
 			else angles[P] = -1; 
@@ -106,7 +141,7 @@ vector<Point> polyFromPoints(vector<Point>& coords)
 	}
 
 
-	return coords;
+	return coordpoints;
 }
 
 
@@ -386,13 +421,13 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 	//cout << endl << "tgray Created";
 
 
-	CvSeq* result;
+//	CvSeq* result;
 
 
 	///creating a new bounding rectangle to put around the found card
 	//CvRect* rect = new CvRect;
 	//CvRect* cropRect = new CvRect;
-	Rect * cropRect = new Rect();
+	//Rect * cropRect = new Rect();
 
 	double s, t;
 	// create empty sequence that will contain points -
@@ -405,58 +440,25 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 
 
-	//cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height ));
-	//	timg.adjustROI( cvRect(0,0,sz.width,sz.height),);
-	//timg.adjustROI(0,0,
 
-	//	Rect * rect = new Rect(cvPoint(0,0),sz);
-	//	Rect * rect = new Rect(0,0,288,288);
-	Rect * rect = new Rect(0,0,timg.cols,timg.rows);
-	//	Rect * rect = new Rect(0,0,timg.cols,timg.rows);
-
-
-
-	cout << endl << "Trying for subImg" ;
-	cout << endl << "timg Rows= " << timg.rows <<  " Columns = " << timg.cols;
 	// down-scale and upscale the image to filter out the noise
 
-	cout << endl << "about to down";
 
-
-	//pyrDown(*gray,pyr,Size(subImg->cols/2,subImg->rows/2));
 	pyrDown(*gray,pyr,Size(gray->cols/2,gray->rows/2));
 
-	cout << endl << "Trying to display subImg after PyrDown";
 
+	///Display the intervening images
 	imshow(camwndname,*gray);
 
-	cout << endl << "Tried to display new gray";
-	cvWaitKey(0);
-
-
-	cout << endl << "about to up";
 	pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
 
-	cout << endl << "pyrs complete";
-
-
-	cout << endl << "Trying to display gray'd in other window";
-
 	imshow(camwndname,*gray);
-
-	cout << endl << "Tried to display gray";
-
-	cout << gray->channels() << " Channels " << endl;
-	cvWaitKey(0);
-
-
 	////Switching to a purely Canny based detection
 	////holder image
 	Mat canny_output;
 	Canny(*gray, canny_output, 100, 200, 3);
 //	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
 
-	cout << " find contours " << endl;
 	imshow(camwndname,canny_output);
 	cvWaitKey(0);
 
@@ -464,16 +466,8 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 
 ///This works
-findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
+	findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
 ///this is unknown
-
-//	vector<Vec4i> hierarchy;
-//	findContours(canny_output,contours, hierarchy, CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE);
-
-	cout << endl << "Did we find contours? ";
-	cout  << contours.size() <<  "Found" << endl;
-	cvWaitKey(0);
-
 	////Store the found squares here
 //	vector<Rect>boundRect(contours.size());
 	vector<Rect> boundRect;
@@ -492,95 +486,6 @@ cvWaitKey(0);
 	
 cout << "Rects found: " << boundRect.size();
 cvWaitKey(0);
-
-	//while( contours )
-		/*	   while(true)
-            {
-                // approximate contour with accuracy proportional
-                // to the contour perimeter
-//                result = cvApproxPoly( contours, sizeof(CvContour), storage,
-  //                  CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.02, 0 );
-
-				// square contours should have 4 vertices after approximation
-                // relatively large area (to filter out noisy contours)
-                // and be convex.
-                // Note: absolute value of an area is used because
-                // area may be positive or negative - in accordance with the
-                // contour orientation
-				//int largestContourAreaFound = 0;
-		//		vector< vector<Point>> results;
-
-				
-		//		approxPolyDP(contours ,results, 5
-
-
-
-				////Adapting code, experimenting with a 
-				////bouding rect
-				*rect = cvBoundingRect(result);
-				double largestFound =0;
-			
-				double cRatio = (rect->height+0.0)/rect->width;
-				
-                if( result->total == 4 &&
-                    (cvContourArea(result,CV_WHOLE_SEQ,0) > 20000) && (cvContourArea(result,CV_WHOLE_SEQ,0) < 300000) &&
-                    cvCheckContourConvexity(result) && (cRatio<=1.40 && cRatio>=1.34))
-					//cvCheckContourConvexity(result))
-                {
-					////Locating the (hopefully largest) contour matching the ratio of the car
-					if((cvContourArea(result,CV_WHOLE_SEQ,0) > largestFound))
-						{
-							largestFound = (cvContourArea(result,CV_WHOLE_SEQ,0));
-							
-							//////we don't want to bound this rect anymore
-							*cropRect = cvBoundingRect(result); 
-							
-							////But we have to keep it for testing
-							//*cropRect = result;
-						}
-					
-					s = 0;
-					for( i = 0; i < 5; i++ )
-                    {
-                        // find minimum angle between joint
-                        // edges (maximum of cosine)
-                        if( i >= 2 )
-                        {
-                            t = fabs(angle(
-                            (CvPoint*)cvGetSeqElem( result, i ),
-                            (CvPoint*)cvGetSeqElem( result, i-2 ),
-                            (CvPoint*)cvGetSeqElem( result, i-1 )));
-                            s = s > t ? s : t;
-                        }
-                    }
-
-                    // if cosines of all angles are small
-                    // (all angles are ~90 degree) then write quandrange
-                    // vertices to resultant sequence
-                    if( s < 0.3 )
-					{
-						if(squares->total > 0)
-						for( i = 0; i < 4; i++ )
-							cvSeqRemove(squares,0);
-
-                        for( i = 0; i < 4; i++ )
-							cvSeqPush( squares,(CvPoint*)cvGetSeqElem( result, i ));
-					}
-
-				}
-				
-
-                // take the next contour
-				
-//                contours = contours->h_next;
-				
-            }
-			
-			////End the contour finding. 
-			//rect.x = CvPoint(cvGetSeqElem(squares,0));
-        }
-	}
-
     
 
 /*
@@ -593,27 +498,126 @@ cvWaitKey(0);
 		cout <<  endl << "Finished the display" << endl;
 		//char b;
 		//cin>>b;
-
-
-cout << "here" << endl;		
-
-cout << "middle" << endl;
-
-rotateDisplay = cropRotate(cropRect,squares,img);
-cout << "there" << endl;
-imshow("Rotated Window",*rotateDisplay);
-
 */
-
-/*    // release all the temporary images
-    cvReleaseImage( &gray );
-    cvReleaseImage( &pyr );
-    cvReleaseImage( &tgray );
-    cvReleaseImage( &timg );
-*/
-   // return squares;
 	return boundRect;
 }
+
+
+////This version returns the vector of points of (hopefully) the card. 
+vector<vector<Point> > findCards( Mat img1)
+{
+
+	//	cout << endl << "Find Cards";
+	////So cv::Seq is not what we want? Still using a cvSeq of....unknown
+	/// We may need to swap to a vector (?)
+	//CvSeq* contours = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+	/////Instead we will use a vector per OpenCV.org example
+
+	vector<vector<Point>> contours;
+
+	//	cout << endl << "contours Created";
+
+
+	int i, c, l, N=11;
+
+	//	cv::Size sz = cvSize(img.cols() & -2, img.rows() & -2);
+
+	Size sz = img1.size();
+
+
+
+
+	cout << endl << "findSquares4: set up a bunch of temp images";
+
+	/////Make a clone of the input image
+	Mat timg = img1.clone();
+
+	cout << endl << "Timg declared!";
+
+	cvWaitKey(0);
+
+	imshow(camwndname,img1);
+
+	Mat * gray = new Mat(sz,1);
+	cout << endl << "gray DECLARED";
+
+	cvtColor(timg,*gray,CV_RGB2GRAY);
+	cout << endl << "gray Created";
+	imshow(camwndname,*gray);
+
+	cvWaitKey(0);
+	cout << endl << "Trying to display timg";
+
+	imshow(camwndname,timg);
+
+	cout << endl << "Tried to display timg";
+
+	cvWaitKey(0);
+
+
+
+
+	//	IplImage* gray = cvCreateImage( sz, 8, 1 );
+	//Mat gray(sz.height, sz.width, 1);
+
+	//	Mat pyr(Size(240, 240));
+	//	Mat pyr(240,240,1);
+	Mat pyr(sz.height/2,sz.width/2,1);
+
+	cout << endl << "Pyr Created";
+
+	// down-scale and upscale the image to filter out the noise
+
+	pyrDown(*gray,pyr,Size(gray->cols/2,gray->rows/2));
+	///Display the intervening images
+	imshow(camwndname,*gray);
+
+	pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
+
+	imshow(camwndname,*gray);
+	////Switching to a purely Canny based detection
+	////holder image
+	Mat canny_output;
+	Canny(*gray, canny_output, 100, 200, 3);
+//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
+
+	imshow(camwndname,canny_output);
+	cvWaitKey(0);
+
+///This works
+	findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
+	
+	vector<vector<Point> >  *foundCards = new vector<vector<Point> >;
+		cout << endl << " converting " <<endl ;
+		
+//		boundRect =	convertContoursToSqr(contours);
+		
+
+
+		convertContoursToPts(contours,foundCards);
+		
+
+		///srcConts should be a collection of contours from the "Found Contours"
+	
+
+cvWaitKey(0);
+    
+
+/*
+		/////This is where we want to make our own sequence
+	/////Filtered. It would contain only the largest of the 
+	/////contours in "squares"
+	//CvSeq* foundCard = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
+
+		displayCropped(cropRect, img);
+		cout <<  endl << "Finished the display" << endl;
+		//char b;
+		//cin>>b;
+*/
+	return *foundCards;
+}
+
+
 
 
 vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
@@ -621,7 +625,7 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 	///srcConts should be a collection of contours from the "Found Contours"
 	vector<vector <Point>> contours_poly(srcConts.size());
 	vector<Rect> boundRect;
-vector<Point> approx;
+	vector<Point> approx;
 
 	cout << endl << "SrcCounts size: " << srcConts.size();
 	cout << endl << "fndSquares size: " << boundRect.size();
@@ -631,8 +635,6 @@ vector<Point> approx;
 
 	for (size_t p = 0; p < srcConts.size(); p++)
 	{
-		cout << endl << "On iteration " << p << " Of p";
-		//approxPolyDP(Mat(srcConts[p]),contours_poly[p], arcLength(Mat(srcConts[p]),true)* .02,true);
 		
 		approxPolyDP(Mat(srcConts[p]), approx, arcLength(Mat(srcConts[p]), true)*0.02, true);
 		
@@ -649,8 +651,6 @@ vector<Point> approx;
                         maxCosine = MAX(maxCosine, cosine);
 						cout << "J: " << j;
 					}
-
-
                     // if cosines of all angles are small
                     // (all angles are ~90 degree) then write quandrange
                     // vertices to resultant sequence
@@ -658,42 +658,104 @@ vector<Point> approx;
 					{
 
 									///the following works but not point to point
-								boundRect.push_back (boundingRect(Mat(srcConts[p])));
+								//boundRect.push_back (boundingRect(Mat(srcConts[p])));
+								
+								///We don't want rects anymore. Eh they might be useful for ROI
+								///But that's later.
 								cout << endl << "X, Y of 0" << approx[0].x << " " << approx[0].y;
 								cout << endl << "X, Y of 0" << approx[1].x << " " << approx[1].y;
 								cout << endl << "X, Y of 0" << approx[2].x << " " << approx[2].y;
 								cout << endl << "X, Y of 0" << approx[3].x << " " << approx[3].y;
 								
 								////Need to implement this to be safe
-								//polyFromPoints(approx);
-
-						//boundRect[p] = boundingRect(Mat(srcConts[p]));
-cout << endl << "I apparently found a rect! it is area ";
-					 //cout << boundRect[p].area();
-
-//					 cout << boundRect.end().area();
+								polyFromPoints(approx);
 
 					}
 			}
 
-
-
-
-		
-
-
 	}
 
-
-
-				//boundRect[p]= boundingRect(Mat(contours_poly[p]));
-
-//	approxPolyDP(Mat(srcConts[0]),contours_poly[0],3,true);
-
-	cout << endl << "Loop finished";
 	cout << endl << "boundRect size: " << boundRect.size();
 
 return boundRect;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
+//vector<vector<Point> >* convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
+	///srcConts should be a collection of contours from the "Found Contours"
+	vector<vector <Point>> contours_poly(srcConts.size());
+//	vector<Rect> boundRect;
+	vector<Point> approx;
+
+	cout << endl << "SrcCounts size: " << srcConts.size();
+//	cout << endl << "fndSquares size: " << boundRect.size();
+	cout << endl << "contours_poly size: " << contours_poly.size();
+
+
+
+	for (size_t p = 0; p < srcConts.size(); p++)
+	{
+		approxPolyDP(Mat(srcConts[p]), approx, arcLength(Mat(srcConts[p]), true)*0.02, true);
+		
+		if(approx.size() == 4 && fabs(contourArea(Mat(approx)))>1000 && isContourConvex(Mat(approx)))
+		
+		{
+				    double maxCosine = 0;
+
+                    for( int j = 2; j < 5; j++ )
+                    {
+                        // find the maximum cosine of the angle between joint edges
+                        double cosine = fabs(angle(&approx[j%4], &approx[j-2], &approx[j-1]));
+						cout << endl << "Cosine is " << cosine;
+                        maxCosine = MAX(maxCosine, cosine);
+						cout << "J: " << j;
+					}
+                    // if cosines of all angles are small
+                    // (all angles are ~90 degree) then write quandrange
+                    // vertices to resultant sequence
+                    if( maxCosine < 0.3 )
+					{
+
+									///the following works but not point to point
+								//boundRect.push_back (boundingRect(Mat(srcConts[p])));
+								
+								///We don't want rects anymore. Eh they might be useful for ROI
+								///But that's later.
+								cout << endl << "X, Y of 0" << approx[0].x << " " << approx[0].y;
+								cout << endl << "X, Y of 0" << approx[1].x << " " << approx[1].y;
+								cout << endl << "X, Y of 0" << approx[2].x << " " << approx[2].y;
+								cout << endl << "X, Y of 0" << approx[3].x << " " << approx[3].y;
+								cout << endl << "Push it";
+								foundSquares->push_back(approx);
+								////Need to implement this to be safe
+								cout << endl << "PolyfromPts";
+//								polyFromPoints(approx);
+
+					}
+			}
+
+	}
+
+//	cout << endl << "boundRect size: " << boundRect.size();
+
+//return boundRect;
+	return;
 }
 
 
@@ -821,7 +883,7 @@ int main(int argc, char** argv)
 
 
 		cv::namedWindow(camwndname,1);
-		cv::namedWindow(camwndname,1);
+
 
 		while (true) {
 		
@@ -900,16 +962,18 @@ CvMemStorage * storage = cvCreateMemStorage(0);
 				/////we're going to modify it so findSquares returns
 				////a vector of rects
 
-		 vector<Rect> sq = findSquares4(*img,storage);		
-
-
+		// vector<Rect> sq = findSquares4(*img,storage);		
+		
+		 vector<vector<Point> > cards = findCards(*img);
+			
 
         // find and draw the squares
-		cout << endl << "Draw some squares, if you find them";
-       // drawSquares( IplImage(img), findSquares4( img, storage ) );
-
-
-		drawSquares(*img, sq);
+		cout << endl << "Draw some lines, if you find them";
+		drawCardLines(cards, img);     
+		// drawSquares( IplImage(img), findSquares4( img, storage ) );
+				imshow(camwndname,*img);
+		
+		//drawSquares(*img, sq);
 
         // wait for key.
         // Also the function cvWaitKey takes care of event processing
@@ -928,7 +992,7 @@ CvMemStorage * storage = cvCreateMemStorage(0);
 
 
 		delete storage;
-		storage = 0;
+//		storage = 0;
 		//    if( (char)c == 27 )
       //      break;
     
