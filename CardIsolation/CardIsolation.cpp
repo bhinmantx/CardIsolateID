@@ -56,7 +56,10 @@ double angle( Point* pt1, Point* pt2, Point* pt0 );
 vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts);
 //vector<vector<Point> > findCards( Mat img1);
 
-void findCards( Mat img1, vector<Point>*lastCard);
+//void findCards( Mat img1, vector<Point>*lastCard);
+
+////older version of findcards with the vector of vectors of points
+void findCards( Mat img1, vector<vector<Point> >*lastCard);
 
 void convertContoursToPts(vector<vector<Point> > &srcConts,vector<vector<Point> > * foundSquares);
 //vector<vector<Point> >* convertContoursToPts(vector<vector<Point> > &srcConts,vector<vector<Point> > * foundSquares);
@@ -65,19 +68,21 @@ void convertContoursToPts(vector<vector<Point> > &srcConts,vector<vector<Point> 
 
 vector<Point> polyFromPoints(vector<Point>& coordpoints);
 
-void isolateCard(vector<vector<Point> > &foundCards, vector<Point> * lastCard);
+//void isolateCard(vector<vector<Point> > &foundCards, vector<Point> * lastCard);
+
+void isolateCard(vector<vector<Point> > &foundCards);
 
 void drawCardLines(vector<vector<Point> > pts, Mat * img);
 
 
 
-void isolateCard(vector<vector<Point> > &foundCards, vector<Point> * lastCard)
+void isolateCard(vector<vector<Point> > &foundCards)
 {
 	/////We find the biggest area
 
 	Rect * cropRect;
 	int largestArea = 0;
-	vector<Point> * largestCard = new vector<Point>[4];
+	vector<vector<Point> > * largestCard = new vector< vector<Point> >;
 	///We iterate through found cards.
 
 	for(int i=0;i<foundCards.size();i++)
@@ -91,21 +96,27 @@ void isolateCard(vector<vector<Point> > &foundCards, vector<Point> * lastCard)
 		if(abs(cropRect->area()) > largestArea)
 		{
 			largestArea = abs(cropRect->area());
-			largestCard->clear();
-			largestCard->push_back(foundCards[i][3]);
-			largestCard->push_back(foundCards[i][2]);
-			largestCard->push_back(foundCards[i][1]);
-			largestCard->push_back(foundCards[i][0]);
-
+			//largestCard->clear();
+			//largestCard->push_back(foundCards[i][3]);
+			//largestCard->push_back(foundCards[i][2]);
+			//largestCard->push_back(foundCards[i][1]);
+			//largestCard->push_back(foundCards[i][0]);
+			
+			largestCard->push_back(foundCards[i]);
 		}
 		//		delete *cropRect;
 	}
-	lastCard = largestCard;
+
+	foundCards.clear();
+	foundCards.push_back(largestCard[0][0]);
+	cout << "FoundCards size: " << foundCards.size();
+
+
 	return;
 }
 
 
-void drawCardLines(vector<vector<Point> > pts, Mat * img)
+void drawCardLine(vector<vector<Point> > pts, Mat * img)
 {
 	////takes a vector of vectors to points.
 	cout << endl << "I see type 2 " << pts.size() << " many likely SHAPES in this";
@@ -120,31 +131,10 @@ void drawCardLines(vector<vector<Point> > pts, Mat * img)
 		cv::line(*img,pts[q][2],pts[q][3],Scalar(0,0,255),4,8,0);
 		cv::line(*img,pts[q][3],pts[q][0],Scalar(0,255,255),4,8,0);
 	}
+		imshow(wndname,*img);
 }
 
-
-void drawCardLine(vector<Point> & card, Mat * img)
-{
-	////takes a vector of vectors to points.
-//	cout << endl << "I see " << card[0].x << " many likely POINTS in this";
-cout << endl << "I want to draw this";
-	//for(int q = 0; q < pts.size(); q++)
-	//{
-	///we move through the vectors, which SHOULD contain 4 points each. SHOULD
-	//cout << endl << "I see " << pts[q].size() << " points in " << q;
-	////Probably fastest just to draw every line, assuming there are 4 points
-	//cv::line(*img,card[0],card[1],Scalar(255,0,0),4,8,0);
-	//cout << endl << "Test 1";	
-	//cv::line(*img,card[1],card[2],Scalar(0,255,0),4,8,0);
-	//cout << endl << "Test 2";
-	//cv::line(*img,card[2],card[3],Scalar(0,0,255),4,8,0);
-	//cout << endl << "Test 3";
-	//cv::line(*img,card[3],card[0],Scalar(0,255,255),4,8,0);
-
-	//}
-
-//	imshow(wndname,*img);
-}
+ 
 
 
 
@@ -566,21 +556,16 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 ////This version returns the vector of points of (hopefully) the card. 
 //vector<vector<Point> > findCards( Mat img1 )
-void findCards( Mat img1, vector<Point> *lastCard )
+////
+void findCards( Mat img1, vector<vector<Point> > *cards )
 {
-cout << "void findCards( Mat img1, vector<Point> *lastCard )" << endl;
+cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
+
+	//Store shapes we find
 	vector<vector<Point>> contours;
+
 	int i, c, l, N=11;
-
-	//	cv::Size sz = cvSize(img.cols() & -2, img.rows() & -2);
-
 	Size sz = img1.size();
-
-
-
-
-	cout << endl << "findSquares4: set up a bunch of temp images";
-
 	/////Make a clone of the input image
 	Mat timg = img1.clone();
 
@@ -624,18 +609,25 @@ cout << "void findCards( Mat img1, vector<Point> *lastCard )" << endl;
 	///This works
 	findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
 
-	vector<vector<Point> >  *foundCards = new vector<vector<Point> >;
+
+	/////////////////////////////////////////////////////////////////////////
+	//vector<vector<Point> >  *foundCards = new vector<vector<Point> >;
+	//////////////////////////////////////////REDUNDANT
+
 	cout << endl << " converting " <<endl ;
 
 	//		boundRect =	convertContoursToSqr(contours);
 
-	convertContoursToPts(contours,foundCards);
-
-	////Now that we have a vector of cards, we should narrow it down to a single card. 
+////This function makes a vector of vectors of 4 points.
+	convertContoursToPts(contours,cards);
+	
+	//convertContoursToPts(contours,lastCard);
+////Now that we have a vector of cards, we should narrow it down to a single card. 
 
 /////I don't think this is working, going to try removing it
-//	isolateCard(*foundCards,lastCard);
-
+	//cout << endl << "Found cards: " << cards->size();
+	//isolateCard(*foundCards,lastCard);
+	//	cout << endl << "Found cards after isolation: " << cards->size();
 	///srcConts should be a collection of contours from the "Found Contours"
 
 
@@ -726,6 +718,9 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 
 
 
+////This function should be pulling the contours that have 4 corners and pushing them on to the foundsquares???
+
+//void convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
 void convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
 	//vector<vector<Point> >* convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
 	///srcConts should be a collection of contours from the "Found Contours"
@@ -916,25 +911,26 @@ int main(int argc, char** argv)
 	img = new Mat();
 	*img =(img0->clone());
 
+	vector<vector<Point> > * Cards = new vector<vector <Point> >;
+
+	findCards(*img, Cards);
+	cout << endl << "After findCards Cards size is " << Cards->size();
+ 
+
+	isolateCard(*Cards);
+
+	cout << endl << "Cards vector size = " << Cards->size();
 
 
-	/////we're going to modify it so findSquares returns
-	////a vector of rects
-	// vector<Rect> sq = findSquares4(*img,storage);		
-
-	////Find cards should return a vector filled with points.
-	vector<Point> * lastCard;
-
-	findCards(*img, lastCard);
-
-	
 	// find and draw the squares
 
 	//cout << endl << "X/Y of last card " << lastCard[0]->x << " " << lastCard[0]->y;
 	
-	cout << endl << "Draw some lines, if you find them";
+	cout << endl << "Draw some lines, if you find them" << Cards->size();
 
-	drawCardLine(*lastCard, img);     
+//	drawCardLine(*lastCard, img);     
+	drawCardLine(*Cards, img);
+
 	// drawSquares( IplImage(img), findSquares4( img, storage ) );
 	imshow(camwndname,*img);
 
