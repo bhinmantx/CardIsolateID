@@ -74,6 +74,52 @@ void isolateCard(vector<vector<Point> > &foundCards);
 
 void drawCardLines(vector<vector<Point> > pts, Mat * img);
 
+////Accepts the vector of cards, with assumption of [0][4] and returns a bouding rect. 
+Rect * createCropRectFromCard(vector<vector<Point> > *Cards);
+
+
+Rect * createCropRectFromCard(vector<vector<Point> > &Cards){
+
+	cout << endl << "Crop x: " << Cards[0][0].x << "Crop y: " <<Cards[0][0].y;
+///We want an x that is farthest "left" and a y that is "highest"
+	///only point 3 and point 0 should have X's we care about
+
+	int myX;
+	int myY;
+
+	if(Cards[0][0].x < Cards[0][3].x)
+		myX = Cards[0][0].x;
+	else
+		myX = Cards[0][3].x;
+	///only point 0 and point 1 should have a y val we care about
+		if(Cards[0][0].y < Cards[0][1].y)
+		myY = Cards[0][0].y;
+	else
+		myY = Cards[0][1].y;
+
+
+
+	///Let's find the height
+	///Width is going to be whichever is the greater difference between
+	///myX and point [1]'s x and point[2]'s x
+int myWidth=0;
+
+	if((Cards[0][1].x - myX) > (Cards[0][2].x - myX))
+		myWidth = (Cards[0][1].x - myX);
+	else
+		myWidth = (Cards[0][2].x - myX);
+
+int myHeight=0;
+	if((Cards[0][2].y - myY) > (Cards[0][3].y - myY))
+		myHeight = (Cards[0][2].y - myY);
+	else
+		myHeight = (Cards[0][3].y - myY);
+
+	cout << endl << "My X " << myX << " MyY " << myY;
+	cout << endl << "Width" << myWidth << "my Height " << myHeight;
+	return new Rect(myX,myY,myWidth,myHeight);
+}
+
 
 
 void isolateCard(vector<vector<Point> > &foundCards)
@@ -118,12 +164,10 @@ void isolateCard(vector<vector<Point> > &foundCards)
 void drawCardLine(vector<vector<Point> > pts, Mat * img)
 {
 	////takes a vector of vectors to points.
-	cout << endl << "I see type 2 " << pts.size() << " many likely SHAPES in this";
 
 	for(int q = 0; q < pts.size(); q++)
 	{
 		///we move through the vectors, which SHOULD contain 4 points each. SHOULD
-		cout << endl << "I see " << pts[q].size() << " points in " << q;
 		////Probably fastest just to draw every line, assuming there are 4 points
 		cv::line(*img,pts[q][0],pts[q][1],Scalar(255,0,0),4,8,0);
 		cv::line(*img,pts[q][1],pts[q][2],Scalar(0,255,0),4,8,0);
@@ -132,7 +176,7 @@ void drawCardLine(vector<vector<Point> > pts, Mat * img)
 	
 	
 	cv::circle(*img,pts[q][0],4,Scalar(255,0,0),3,8,0);
-	cout << endl << "First off 255,0,0"; 
+	cout << endl << "Blue Cirle = pt.1, green = 2, red 3"; 
 	cv::circle(*img,pts[q][1],4,Scalar(0,255,0),3,8,0);
 		cv::circle(*img,pts[q][2],4,Scalar(0,0,255),3,8,0);
 			cv::circle(*img,pts[q][3],4,Scalar(255,255,0),3,8,0);
@@ -168,9 +212,6 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 	}
 	else
 	{
-		cout << endl << "coordSize: " << coordpoints.size();
-
-		cout << endl << "Beginning point analysis";
 		/////Find point "P" which is our upper left point
 		int P = 0;
 		for(int i =0;i<4;i++)
@@ -186,7 +227,6 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 		///We now have "P" the vector index of the upper left corner. 
 		///Now we calculate which angles have the smallest angle between the vector 
 		///created from P and P.x+1,P.y) and P to the comparison point. 
-		cout << endl<< "Loop complete. Now dealing with angles" <<endl;
 		vector<double> angles(4);
 
 		for(int j=0;j<4;j++)
@@ -203,17 +243,12 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 		}////finish making those angles
 		///Now we need to iterate through that list of angles, and take point P and put it into [0][0] of cards,
 		//the smallest in to [0][1], the 2nd smallest in to [0][2] and the largest into [0][3]
-
-			
-				//card[0] = new Point(coordpoints[0][P]);
+		///First we assign the coords of point P to [0]
 		card[0].x = coordpoints[0][P].x;
 		card[0].y = coordpoints[0][P].y;
 
-		cout << endl << "Point P is " << P << " X: " <<  coordpoints[0][P].x << " Y: " << coordpoints[0][P].y; 
-				//float curbiggest = angles[0]
+
 				int biggestIndex = 0;
-
-
 				for (int c = 1; c < 4; c++)
 				{
 
@@ -224,26 +259,16 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 
 					}
 
-				//card[c] = new Point(coordpoints[0][biggestIndex]);
 				card[c].x = coordpoints[0][biggestIndex].x;
 				card[c].y = coordpoints[0][biggestIndex].y;
 
 				angles[biggestIndex] = -1;
 
 				}
-
-				
-
 	}
 	////We need to modify the points to reflect a particular order.
-	
-	for(int foo = 0; foo < 4; foo++)
-		cout << endl << "The x of point " << foo << " is " << card[foo].x << " and the y is " << card[foo].y;
 
-
-//return coordpoints;
-
-	/////HACK HACK.
+	/////A bit of a hack, we're copying values back from cards into coordpoints
 	for(int t = 0; t<4;t++){
 	cout << endl << "T " << t;
 		coordpoints[0][t].x = card[t].x;
@@ -255,7 +280,7 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 }
 
 
-///With any luck this should accept the square's sequence and the bounding box in rect
+///This should accept the square's sequence and the bounding box in rect
 ///and apply the affine transformation
 ////Modifying to accept a mat* instead of IplImage*
 //Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
@@ -317,16 +342,12 @@ Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 			fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
 
 
-
-
-
 		/////Following stack overflow advice and dropping an image to disk
 		const cv::Point* npoint = &pointsToFix[0];
 		int n = (int)pointsToFix.size();
 
-		std::cout<< endl << "cloning";
+		//Protect original image.
 		cv::Mat draw = src->clone();
-		std::cout<< endl << "drawing";
 		cv::polylines(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
 		//	std::cout<< endl << "saving";
 		//	imwrite("draw1.jpg",draw);
@@ -385,8 +406,9 @@ Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 	return rotatedPtr;
 }
 
-void  displayCropped(CvRect *srcRect, Mat cimg)
+Mat displayCropped(Rect *srcRect, Mat cimg)
 {
+	cout << endl << "SrcRect height: " << srcRect->height;
 	if (srcRect->height > 0)
 	{
 
@@ -407,26 +429,21 @@ void  displayCropped(CvRect *srcRect, Mat cimg)
 
 		//////Setting the ROI in C++ is a bit different. We would create a specific rectangle for the ROI but we have the srcRect
 		////We create a new image for that roi
-		cv::Mat roi_for_cropped;
+		cv::Mat * roi_for_cropped =new Mat; 
 
 		////we copy that rectangle sized area from in this case, cimg
-		roi_for_cropped = cimg(*srcRect);
+		*roi_for_cropped = cimg(*srcRect);
+		
+		cv::namedWindow(croppedwndname);
+		imshow(croppedwndname,*roi_for_cropped);
+		waitKey(0);
 
-		////now we copy that new Mat to cropped (originally used  cvCopy
-		//		cvCopy(roi_for_cropped,cropped,NULL);
-		cimg.copyTo(roi_for_cropped);
-
-
-		///I don't think we need to worry about resetting it because we used that temp Mat
-		//cvResetImageROI(cimg);
-		cvNamedWindow( croppedwndname, 1 );
-		cvShowImage( croppedwndname, cropped );
-
+		return *cropped;	
 	}
 	else
 		cout << endl << "Warning: bad size" << endl;
 	////Do we need some kind of deletion for stuff like roi_for_cropped? 
-
+		return cimg;
 }
 
 
@@ -549,6 +566,7 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 	////holder image
 	Mat canny_output;
 	Canny(*gray, canny_output, 100, 200, 3);
+//	Canny(*gray,canny_output,100,400,3);
 	//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
 
 	imshow(camwndname,canny_output);
@@ -953,7 +971,17 @@ cout << endl << "Cards vector size after PolyFromPoints = " << Cards->size();
 
 	//cout << endl << "X/Y of last card " << lastCard[0]->x << " " << lastCard[0]->y;
 	
-	cout << endl << "Draw some lines, if you find them" << Cards->size();
+
+
+	Rect* cropRect = createCropRectFromCard(*Cards);
+	
+//	cout << endl << "cropRect height = " << cropRect->height;
+
+	Mat croppedImage = displayCropped(cropRect,*img);
+	imshow(croppedwndname,croppedImage);
+	
+	//Rect cropping(Cards[0][0].x,Cards[0][0].y,(Cards[0][1].x - Cards[0][0].x),(Cards[0][1].x - Cards[0][0].x)
+	cout << endl << "Draw some lines, if you find them";	//displayCropped
 
 //	drawCardLine(*lastCard, img);     
 	drawCardLine(*Cards, img);
