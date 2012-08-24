@@ -66,7 +66,7 @@ void convertContoursToPts(vector<vector<Point> > &srcConts,vector<vector<Point> 
 
 //vector<Point> rectFromPoints(<vector>Point coords);
 
-vector<Point> polyFromPoints(vector<Point>& coordpoints);
+vector<vector<Point> > polyFromPoints(vector<vector<Point> >&coordpoints);
 
 //void isolateCard(vector<vector<Point> > &foundCards, vector<Point> * lastCard);
 
@@ -111,7 +111,6 @@ void isolateCard(vector<vector<Point> > &foundCards)
 	foundCards.push_back(largestCard[0][0]);
 	cout << "FoundCards size: " << foundCards.size();
 
-
 	return;
 }
 
@@ -130,8 +129,16 @@ void drawCardLine(vector<vector<Point> > pts, Mat * img)
 		cv::line(*img,pts[q][1],pts[q][2],Scalar(0,255,0),4,8,0);
 		cv::line(*img,pts[q][2],pts[q][3],Scalar(0,0,255),4,8,0);
 		cv::line(*img,pts[q][3],pts[q][0],Scalar(0,255,255),4,8,0);
+	
+	
+	cv::circle(*img,pts[q][0],4,Scalar(255,0,0),3,8,0);
+	cout << endl << "First off 255,0,0"; 
+	cv::circle(*img,pts[q][1],4,Scalar(0,255,0),3,8,0);
+		cv::circle(*img,pts[q][2],4,Scalar(0,0,255),3,8,0);
+			cv::circle(*img,pts[q][3],4,Scalar(255,255,0),3,8,0);
 	}
-		imshow(wndname,*img);
+	
+	imshow(wndname,*img);
 }
 
  
@@ -145,10 +152,17 @@ void drawCardLine(vector<vector<Point> > pts, Mat * img)
 ////Rectangle. This means identifying the corresponding corners of the given points
 ///and using those to calculate the x,y,width,height of a Rect
 
-vector<Point> polyFromPoints(vector<Point>& coordpoints)
-{
+///This should actually be changed to take a vector of vectors of points
+///and return same. In fact it shouldn't return anything it should just modify the existing
+///vector since it should only be given 4 points.
 
-	if(coordpoints.size() < 4){
+vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
+{
+	//vector<Point>  * card = new vector<Point>(4);
+	Point * card = new Point[4];
+ 
+
+	if(coordpoints[0].size() < 4){
 		fprintf(stderr, "ERROR: not enough coordpoints... Exiting\n");
 		return coordpoints;
 	}
@@ -162,10 +176,10 @@ vector<Point> polyFromPoints(vector<Point>& coordpoints)
 		for(int i =0;i<4;i++)
 		{
 			////looking for point with lowest x,y vals
-			cout << endl<< "CoordPoints[" << i << "]: y: " << coordpoints[i].y << "x: " << coordpoints[i].x;
-			if (coordpoints[i].y < coordpoints[P].y)
+			cout << endl<< "CoordPoints[" << i << "]: x: " << coordpoints[0][i].x << " Y: " << coordpoints[0][i].y;
+			if (coordpoints[0][i].x < coordpoints[0][P].x)
 				P = i;
-			else if (coordpoints[P].y == coordpoints[i].y && coordpoints[P].x > coordpoints[i].x)
+			else if (coordpoints[0][P].y == coordpoints[0][i].y && coordpoints[0][P].x > coordpoints[0][i].x)
 				P = i;
 		}
 
@@ -181,16 +195,61 @@ vector<Point> polyFromPoints(vector<Point>& coordpoints)
 			if(j != P)
 			{
 
-				angles[j] = abs(angle(&Point(coordpoints[P].x+1,coordpoints[P].y), &coordpoints[j], &coordpoints[P]));
+				angles[j] = abs(angle(&Point(coordpoints[0][P].x+1,coordpoints[0][P].y), &coordpoints[0][j], &coordpoints[0][P]));
 				cout << endl<< "Angle: " << angles[j];
 			}
 			else angles[P] = -1; 
 
 		}////finish making those angles
+		///Now we need to iterate through that list of angles, and take point P and put it into [0][0] of cards,
+		//the smallest in to [0][1], the 2nd smallest in to [0][2] and the largest into [0][3]
 
+			
+				//card[0] = new Point(coordpoints[0][P]);
+		card[0].x = coordpoints[0][P].x;
+		card[0].y = coordpoints[0][P].y;
+
+		cout << endl << "Point P is " << P << " X: " <<  coordpoints[0][P].x << " Y: " << coordpoints[0][P].y; 
+				//float curbiggest = angles[0]
+				int biggestIndex = 0;
+
+
+				for (int c = 1; c < 4; c++)
+				{
+
+					for (int b = 1; b < 4; b++)
+					{
+						if(angles[biggestIndex] < angles[b])
+							biggestIndex = b;
+
+					}
+
+				//card[c] = new Point(coordpoints[0][biggestIndex]);
+				card[c].x = coordpoints[0][biggestIndex].x;
+				card[c].y = coordpoints[0][biggestIndex].y;
+
+				angles[biggestIndex] = -1;
+
+				}
+
+				
 
 	}
+	////We need to modify the points to reflect a particular order.
+	
+	for(int foo = 0; foo < 4; foo++)
+		cout << endl << "The x of point " << foo << " is " << card[foo].x << " and the y is " << card[foo].y;
 
+
+//return coordpoints;
+
+	/////HACK HACK.
+	for(int t = 0; t<4;t++){
+	cout << endl << "T " << t;
+		coordpoints[0][t].x = card[t].x;
+		coordpoints[0][t].y = card[t].y;
+	}
+	cout << endl << "Size of coordp: " << coordpoints.size();
 
 	return coordpoints;
 }
@@ -413,16 +472,6 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 	Size sz = img1.size();
 
-
-
-	//  CvSeq* contours;
-	//int i, c, l, N = 11;
-	//	int i, c, l, N = 2;
-
-
-	//CvSize sz = cvSize( img.cols() & -2, img.rows() & -2 );
-
-
 	cout << endl << "findSquares4: set up a bunch of temp images";
 
 	/////Make a clone of the input image
@@ -450,14 +499,6 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 	cvWaitKey(0);
 
-
-
-
-	//	IplImage* gray = cvCreateImage( sz, 8, 1 );
-	//Mat gray(sz.height, sz.width, 1);
-
-	//	Mat pyr(Size(240, 240));
-	//	Mat pyr(240,240,1);
 	Mat pyr(sz.height/2,sz.width/2,1);
 
 	cout << endl << "Pyr Created";
@@ -609,11 +650,6 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 	///This works
 	findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
 
-
-	/////////////////////////////////////////////////////////////////////////
-	//vector<vector<Point> >  *foundCards = new vector<vector<Point> >;
-	//////////////////////////////////////////REDUNDANT
-
 	cout << endl << " converting " <<endl ;
 
 	//		boundRect =	convertContoursToSqr(contours);
@@ -633,19 +669,6 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 
 	cvWaitKey(0);
 
-
-	/*
-	/////This is where we want to make our own sequence
-	/////Filtered. It would contain only the largest of the 
-	/////contours in "squares"
-	//CvSeq* foundCard = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
-
-	displayCropped(cropRect, img);
-	cout <<  endl << "Finished the display" << endl;
-	//char b;
-	//cin>>b;
-	*/
-	//	return *foundCards;
 	return;
 }
 
@@ -720,7 +743,7 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 
 ////This function should be pulling the contours that have 4 corners and pushing them on to the foundsquares???
 
-//void convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
+
 void convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
 	//vector<vector<Point> >* convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> > *foundSquares){
 	///srcConts should be a collection of contours from the "Found Contours"
@@ -812,7 +835,7 @@ void drawSquares( Mat img, vector<Rect> sq)
 		line(img,pts[3],pts[2],Scalar(scalarColorB,255,0),4,8,0);
 
 		line(img,pts[2],pts[0],Scalar(scalarColorB,255,0),4,8,0);
-		cout << endl << "Scalar color: " << scalarColorB; 
+		 
 		scalarColorB = 255 - scalarColorB;
 		imshow(camwndname,img);
 		waitKey(0);
@@ -921,6 +944,10 @@ int main(int argc, char** argv)
 
 	cout << endl << "Cards vector size = " << Cards->size();
 
+polyFromPoints(*Cards);	
+
+cout << endl << "Cards vector size after PolyFromPoints = " << Cards->size();
+	cout << endl << "Cards vector[0] size = " << Cards[0].size();
 
 	// find and draw the squares
 
@@ -952,7 +979,7 @@ int main(int argc, char** argv)
 	//cvClearMemStorage( storage );
 
 
-	delete storage;
+//	delete storage;
 	//		storage = 0;
 	//    if( (char)c == 27 )
 	//      break;
