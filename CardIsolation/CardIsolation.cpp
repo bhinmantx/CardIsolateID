@@ -406,7 +406,7 @@ Mat * cropRotate(Mat srcImg, vector<vector<Point> > card){
 
 		//Protect original image.
 		cv::Mat draw = src->clone();
-		cv::polylines(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
+		cv::polylines(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 1, CV_AA);
 			std::cout<< endl << "saving";
 			imwrite("draw1.jpg",draw);
 
@@ -445,14 +445,16 @@ Mat * cropRotate(Mat srcImg, vector<vector<Point> > card){
 		dst_vertices[1] = cvPoint(box.boundingRect().width-1,0);
 		dst_vertices[2] = cvPoint(0,box.boundingRect().height-1);
 
+
+
 		std::cout<< endl << "Get Affine Transform";
 		cv::Mat warpAffineMatrix = getAffineTransform(src_vertices, dst_vertices);
-		imwrite("Warp1.jpg", warpAffineMatrix);
+		
 		std::cout<< endl << "Rotating?" << endl;
 		cv::Mat rotated;   ///original rotated decl
 		cv::Size size(box.boundingRect().width, box.boundingRect().height);
 
-		warpAffine(*src, rotated, warpAffineMatrix, size, INTER_LINEAR,BORDER_CONSTANT);
+		warpAffine(*src, rotated, warpAffineMatrix, size, INTER_CUBIC);
 
 			cv::imwrite("rotated.jpg",rotated);
 	}
