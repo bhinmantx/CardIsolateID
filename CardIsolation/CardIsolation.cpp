@@ -133,16 +133,20 @@ void isolateCard(vector<vector<Point> > &foundCards)
 
 	for(int i=0;i<foundCards.size();i++)
 	{
-		int w = foundCards[i][1].x - foundCards[i][0].x;
-		int h = foundCards[i][3].y - foundCards[i][0].y;
+		//int w = foundCards[i][1].x - foundCards[i][0].x;
+		//int h = foundCards[i][3].y - foundCards[i][0].y;
 
-		cropRect = &Rect(foundCards[0][0].x,foundCards[0][0].y,w,h);
+		//cropRect = &Rect(foundCards[0][0].x,foundCards[0][0].y,w,h);
+		
+		
+		cropRect = &boundingRect(Mat(foundCards[i]));
 		cout << endl << "Area of the rect I found is " << abs(cropRect->area());
+
 		//Is this the largest polygon?
 		if(abs(cropRect->area()) > largestArea)
 		{
 			largestArea = abs(cropRect->area());
-			//largestCard->clear();
+			largestCard->clear();
 			//largestCard->push_back(foundCards[i][3]);
 			//largestCard->push_back(foundCards[i][2]);
 			//largestCard->push_back(foundCards[i][1]);
@@ -200,11 +204,60 @@ void drawCardLine(vector<vector<Point> > pts, Mat * img)
 ///and return same. In fact it shouldn't return anything it should just modify the existing
 ///vector since it should only be given 4 points.
 
+
+int findPointP(vector<vector<Point> > &points)
+{
+int P = -1;
+int smallest = 0;
+int secondsmall = 0;
+
+if(points[0].size() != 4)
+	{
+		fprintf(stderr, "ERROR: not enough coordpoints... Exiting\n");
+		return 0;
+	}
+	else
+	{
+		///We search through the vector to find the smallest and second smallest X val
+
+
+		for(int i = 1; i<4;i++)
+		{	
+			////if we find that the x of the examined is smaller that 2nd
+			if(points[0][i].x <= points[0][secondsmall].x)
+			{
+				////we should check if it's smaller than smallest
+				if(points[0][i].x < points[0][smallest].x)
+				{
+					secondsmall = smallest;
+					smallest = i;
+				}
+				else
+					secondsmall = i;
+			}//end smaller check
+		}///end 4 loop
+	}
+if(points[0][smallest].y < points[0][secondsmall].y)
+	P = smallest;
+else
+	P = secondsmall;
+
+		cout << endl << "Point P = " << P << " " <<  points[0][P].x << " X and Y " << points[0][P].y;
+
+
+return P;
+}///End Find P
+
+
+
 vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 {
 	//vector<Point>  * card = new vector<Point>(4);
 	Point * card = new Point[4];
- 
+	
+	findPointP(coordpoints);
+	///Store our initial, upper left point here.
+	int P = 0;
 
 	if(coordpoints[0].size() < 4){
 		fprintf(stderr, "ERROR: not enough coordpoints... Exiting\n");
@@ -212,23 +265,15 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 	}
 	else
 	{
-		/////Find point "P" which is our upper left point
-		int P = 0;
-		for(int i =0;i<4;i++)
-		{
-			////looking for point with lowest x,y vals
-			cout << endl<< "CoordPoints[" << i << "]: x: " << coordpoints[0][i].x << " Y: " << coordpoints[0][i].y;
-			if (coordpoints[0][i].x < coordpoints[0][P].x)
-				P = i;
-			else if (coordpoints[0][P].y == coordpoints[0][i].y && coordpoints[0][P].x > coordpoints[0][i].x)
-				P = i;
-		}
+		
+		P =	findPointP(coordpoints);	
 
+	
 		///We now have "P" the vector index of the upper left corner. 
 		///Now we calculate which angles have the smallest angle between the vector 
 		///created from P and P.x+1,P.y) and P to the comparison point. 
 		vector<double> angles(4);
-
+		cout << endl << "POINT P IS INDEX " << P << "  X: " << coordpoints[0][P].x << " y:" << coordpoints[0][P].y;
 		for(int j=0;j<4;j++)
 		{
 
@@ -236,7 +281,7 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 			{
 
 				angles[j] = abs(angle(&Point(coordpoints[0][P].x+1,coordpoints[0][P].y), &coordpoints[0][j], &coordpoints[0][P]));
-				cout << endl<< "Angle: " << angles[j];
+				cout << endl<< "Angle: "<< j << ": "  << angles[j];
 			}
 			else angles[P] = -1; 
 
@@ -251,30 +296,32 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 				int biggestIndex = 0;
 				for (int c = 1; c < 4; c++)
 				{
+				
+							for (int b = 0; b < 4; b++)
+							{	
+							//	cout << endl << "Looking at slot C: " << c << " and b: " << b;
+							//	cout << endl << "Current biggestIndex is: " << biggestIndex << " equals: " << angles[biggestIndex];
+								if(angles[biggestIndex] < angles[b])
+									biggestIndex = b;
+							//		cout << endl << "Biggest Index is now " << biggestIndex;
+							}
 
-					for (int b = 1; b < 4; b++)
-					{
-						if(angles[biggestIndex] < angles[b])
-							biggestIndex = b;
+						card[c].x = coordpoints[0][biggestIndex].x;
+						card[c].y = coordpoints[0][biggestIndex].y;
 
-					}
-
-				card[c].x = coordpoints[0][biggestIndex].x;
-				card[c].y = coordpoints[0][biggestIndex].y;
-
-				angles[biggestIndex] = -1;
-
-				}
+						angles[biggestIndex] = -1;
+						//biggestIndex = 0;
+				
+				}///c loop
 	}
 	////We need to modify the points to reflect a particular order.
 
 	/////A bit of a hack, we're copying values back from cards into coordpoints
 	for(int t = 0; t<4;t++){
-	cout << endl << "T " << t;
+		cout << endl << " inserting into coordp X,Y of " << t << " " << card[t].x << " " << card[t].y ;
 		coordpoints[0][t].x = card[t].x;
 		coordpoints[0][t].y = card[t].y;
 	}
-	cout << endl << "Size of coordp: " << coordpoints.size();
 
 	return coordpoints;
 }
@@ -284,13 +331,15 @@ vector<vector<Point> > polyFromPoints(vector<vector<Point> > &coordpoints)
 ///and apply the affine transformation
 ////Modifying to accept a mat* instead of IplImage*
 //Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, IplImage *srcImg){
-Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
+//Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
+
+Mat * cropRotate(Mat srcImg, vector<vector<Point> > card){
 	///Create the matrix to store our points
 
 	Mat * rotatedPtr = new Mat;
-	Mat rotated = *rotatedPtr;
 
-	if (srcRect->height > 0){
+
+	if (card[0].size() == 4){
 		cv::Mat * src = &srcImg;
 
 		vector<cv::Point> pointsToFix;
@@ -318,6 +367,7 @@ Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 		///Instead of the src rec, let's try using squares
 
 		//we need a seq reader
+		/*
 		CvSeqReader reader;
 
 		cvStartReadSeq( srcPoints, &reader, 0);
@@ -340,7 +390,15 @@ Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 		}
 		else
 			fprintf(stderr, "ERROR:srcPoints is empty Exiting\n");
+*/
 
+
+		///We just need to transfer all of the points from card into a matrix.
+
+		pointsToFix.push_back(card[0][3]);
+		pointsToFix.push_back(card[0][2]);
+		pointsToFix.push_back(card[0][1]);
+		pointsToFix.push_back(card[0][0]);
 
 		/////Following stack overflow advice and dropping an image to disk
 		const cv::Point* npoint = &pointsToFix[0];
@@ -349,8 +407,8 @@ Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 		//Protect original image.
 		cv::Mat draw = src->clone();
 		cv::polylines(draw, &npoint, &n, 1, true, CV_RGB(0,255,0), 3, CV_AA);
-		//	std::cout<< endl << "saving";
-		//	imwrite("draw1.jpg",draw);
+			std::cout<< endl << "saving";
+			imwrite("draw1.jpg",draw);
 
 
 		//	cvNamedWindow(rotatedwnd, 1);
@@ -376,6 +434,7 @@ Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 		std::cout<< endl << "copying to box (possibly to)";
 		box.points(pts);
 
+
 		cv::Point2f src_vertices[3];
 		src_vertices[0] = pts[0];
 		src_vertices[1] = pts[1];
@@ -388,13 +447,14 @@ Mat * cropRotate(CvRect *srcRect, CvSeq* srcPoints, Mat srcImg){
 
 		std::cout<< endl << "Get Affine Transform";
 		cv::Mat warpAffineMatrix = getAffineTransform(src_vertices, dst_vertices);
-
+		imwrite("Warp1.jpg", warpAffineMatrix);
 		std::cout<< endl << "Rotating?" << endl;
-		//cv::Mat rotated;   ///original rotated decl
+		cv::Mat rotated;   ///original rotated decl
 		cv::Size size(box.boundingRect().width, box.boundingRect().height);
-		warpAffine(*src, rotated, warpAffineMatrix, size);
 
-		//	cv::imwrite("rotated.jpg",rotated);
+		warpAffine(*src, rotated, warpAffineMatrix, size, INTER_LINEAR,BORDER_CONSTANT);
+
+			cv::imwrite("rotated.jpg",rotated);
 	}
 	else
 		fprintf(stderr, "ERROR: rotate didn't work");
@@ -471,22 +531,17 @@ double angle( Point* pt1, Point* pt2, Point* pt0 )
 //CvSeq * findSquares4( Mat img1, CvMemStorage *storage )
 vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 {
-
-	//	cout << endl << "Contours";
-	////So cv::Seq is not what we want? Still using a cvSeq of....unknown
-	/// We may need to swap to a vector (?)
-	//CvSeq* contours = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
 	/////Instead we will use a vector per OpenCV.org example
-
+	///Store contours as a vector of vectors of points
 	vector<vector<Point>> contours;
 
 	//	cout << endl << "contours Created";
 
+////Originally these were used for threshold. Redundant
+//	int i, c, l, N=11;
 
-	int i, c, l, N=11;
 
-	//	cv::Size sz = cvSize(img.cols() & -2, img.rows() & -2);
-
+	///For quicker calculations
 	Size sz = img1.size();
 
 	cout << endl << "findSquares4: set up a bunch of temp images";
@@ -494,79 +549,28 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 	/////Make a clone of the input image
 	Mat timg = img1.clone();
 
-	cout << endl << "Timg declared!";
-
-	cvWaitKey(0);
-
-	imshow(camwndname,img1);
-
+	///Image to store a grayscale version for pyr'ing
 	Mat * gray = new Mat(sz,1);
-	cout << endl << "gray DECLARED";
-
+	///Convert and store grayscale
 	cvtColor(timg,*gray,CV_RGB2GRAY);
-	cout << endl << "gray Created";
+	
+	////Show a preview of this gray image
 	imshow(camwndname,*gray);
 
 	cvWaitKey(0);
-	cout << endl << "Trying to display timg";
 
-	imshow(camwndname,timg);
-
-	cout << endl << "Tried to display timg";
-
-	cvWaitKey(0);
 
 	Mat pyr(sz.height/2,sz.width/2,1);
 
-	cout << endl << "Pyr Created";
-	//	IplImage* pyr = cvCreateImage( cvSize(sz.width/2, sz.height/2), 8, 3 );
-	//Mat pyr(sz.height/2,sz.width/2, 1);
-
-
-	//	Mat tgray(sz.width,sz.height,1);
-	//	IplImage* tgray;
-
-
-	//cout << endl << "tgray Created";
-
-
-	//	CvSeq* result;
-
-
-	///creating a new bounding rectangle to put around the found card
-	//CvRect* rect = new CvRect;
-	//CvRect* cropRect = new CvRect;
-	//Rect * cropRect = new Rect();
-
-	double s, t;
-	// create empty sequence that will contain points -
-	// 4 points per square (the square's vertices)
-
-	//cv::Seq * squares = new Seq(storage,sizeof(CvSeq));
-	// select the maximum ROI in the image
-	// with the width and height divisible by 2
-	//
-
-
-
-
 	// down-scale and upscale the image to filter out the noise
-
-
 	pyrDown(*gray,pyr,Size(gray->cols/2,gray->rows/2));
 
-
-	///Display the intervening images
-	imshow(camwndname,*gray);
-
 	pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
-
-	imshow(camwndname,*gray);
 	////Switching to a purely Canny based detection
 	////holder image
 	Mat canny_output;
-	Canny(*gray, canny_output, 100, 200, 3);
-//	Canny(*gray,canny_output,100,400,3);
+	Canny(*gray, canny_output, 5, 200, 3);
+
 	//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
 
 	imshow(camwndname,canny_output);
@@ -741,12 +745,6 @@ vector<Rect> convertContoursToSqr(vector<vector<Point>> &srcConts){
 				cout << endl << "X, Y of 0" << approx[3].x << " " << approx[3].y;
 
 
-
-
-				////Need to implement this to be safe
-				////This is broken I think
-				//polyFromPoints(approx);
-
 			}
 		}
 
@@ -769,9 +767,9 @@ void convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> 
 	//	vector<Rect> boundRect;
 	vector<Point> approx;
 
-	cout << endl << "SrcCounts size: " << srcConts.size();
+//	cout << endl << "SrcCounts size: " << srcConts.size();
 	//	cout << endl << "fndSquares size: " << boundRect.size();
-	cout << endl << "contours_poly size: " << contours_poly.size();
+//	cout << endl << "contours_poly size: " << contours_poly.size();
 
 
 
@@ -803,19 +801,12 @@ void convertContoursToPts(vector<vector<Point>> &srcConts, vector<vector<Point> 
 
 				///We don't want rects anymore. Eh they might be useful for ROI
 				///But that's later.
-				cout << endl << "X, Y of 0" << approx[0].x << " " << approx[0].y;
-				cout << endl << "X, Y of 1" << approx[1].x << " " << approx[1].y;
-				cout << endl << "X, Y of 2" << approx[2].x << " " << approx[2].y;
-				cout << endl << "X, Y of 3" << approx[3].x << " " << approx[3].y;
+				cout << endl << "X, Y of 0 " << approx[0].x << " " << approx[0].y;
+				cout << endl << "X, Y of 1 " << approx[1].x << " " << approx[1].y;
+				cout << endl << "X, Y of 2 " << approx[2].x << " " << approx[2].y;
+				cout << endl << "X, Y of 3 " << approx[3].x << " " << approx[3].y;
 				cout << endl << "Push it";
 				foundSquares->push_back(approx);
-
-				
-
-				////Need to implement this to be safe
-				cout << endl << "PolyfromPts";
-				//								polyFromPoints(approx);
-
 			}
 		}
 
@@ -964,8 +955,7 @@ int main(int argc, char** argv)
 
 polyFromPoints(*Cards);	
 
-cout << endl << "Cards vector size after PolyFromPoints = " << Cards->size();
-	cout << endl << "Cards vector[0] size = " << Cards[0].size();
+
 
 	// find and draw the squares
 
@@ -980,6 +970,8 @@ cout << endl << "Cards vector size after PolyFromPoints = " << Cards->size();
 	Mat croppedImage = displayCropped(cropRect,*img);
 	imshow(croppedwndname,croppedImage);
 	
+	cropRotate(*img,*Cards);
+
 	//Rect cropping(Cards[0][0].x,Cards[0][0].y,(Cards[0][1].x - Cards[0][0].x),(Cards[0][1].x - Cards[0][0].x)
 	cout << endl << "Draw some lines, if you find them";	//displayCropped
 
