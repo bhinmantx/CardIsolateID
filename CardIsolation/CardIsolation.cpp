@@ -434,6 +434,13 @@ Mat * cropRotate(Mat srcImg, vector<vector<Point> > card){
 		std::cout<< endl << "copying to box (possibly to)";
 		box.points(pts);
 
+		line(draw,pts[0],pts[1],Scalar(255,0,0),2);
+		line(draw,pts[1],pts[3],Scalar(0,0,255),2);
+		line(draw,pts[0],pts[3],Scalar(0,255,255),2);
+
+		imshow(camwndname,draw);
+
+		waitKey();
 
 		cv::Point2f src_vertices[3];
 		src_vertices[0] = pts[0];
