@@ -139,7 +139,14 @@ void isolateCard(vector<vector<Point> > &foundCards)
 		//cropRect = &Rect(foundCards[0][0].x,foundCards[0][0].y,w,h);
 		
 		
+//		cv::RotatedRect();
+
+		
+
 		cropRect = &boundingRect(Mat(foundCards[i]));
+		
+		
+		
 		cout << endl << "Area of the rect I found is " << abs(cropRect->area());
 
 		//Is this the largest polygon?
@@ -147,10 +154,6 @@ void isolateCard(vector<vector<Point> > &foundCards)
 		{
 			largestArea = abs(cropRect->area());
 			largestCard->clear();
-			//largestCard->push_back(foundCards[i][3]);
-			//largestCard->push_back(foundCards[i][2]);
-			//largestCard->push_back(foundCards[i][1]);
-			//largestCard->push_back(foundCards[i][0]);
 			
 			largestCard->push_back(foundCards[i]);
 		}
@@ -395,9 +398,16 @@ Mat * cropRotate(Mat srcImg, vector<vector<Point> > card){
 
 		///We just need to transfer all of the points from card into a matrix.
 
+//		pointsToFix.push_back(Point(card[0][3].x+2,card[0][3].y+5));
 		pointsToFix.push_back(card[0][3]);
+
+//		pointsToFix.push_back(Point(card[0][2].x+2,card[0][2].y+5));
 		pointsToFix.push_back(card[0][2]);
+
+//		pointsToFix.push_back(Point(card[0][1].x+2,card[0][1].y+5));
 		pointsToFix.push_back(card[0][1]);
+		
+//		pointsToFix.push_back(Point(card[0][0].x+2,card[0][0].y+5));
 		pointsToFix.push_back(card[0][0]);
 
 		/////Following stack overflow advice and dropping an image to disk
@@ -425,7 +435,9 @@ Mat * cropRotate(Mat srcImg, vector<vector<Point> > card){
 		std::cout<< endl << "About to create the minAreaRect";
 
 
-		cv::RotatedRect box = cv::minAreaRect(cv::Mat(pointsToFix));
+	cv::RotatedRect box = cv::minAreaRect(cv::Mat(pointsToFix));
+			//RotatedRect box = 
+
 
 		std::cout<< endl << "Array";
 		///An array of points?
@@ -578,7 +590,7 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 	////Switching to a purely Canny based detection
 	////holder image
 	Mat canny_output;
-	Canny(*gray, canny_output, 5, 200, 3);
+	Canny(*gray, canny_output, 5, 500, 3);
 
 	//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
 
@@ -627,8 +639,8 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 
 ////This version returns the vector of points of (hopefully) the card. 
-//vector<vector<Point> > findCards( Mat img1 )
-////
+
+
 void findCards( Mat img1, vector<vector<Point> > *cards )
 {
 cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
@@ -641,21 +653,16 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 	/////Make a clone of the input image
 	Mat timg = img1.clone();
 
-	cout << endl << "Timg declared!";
-
-	cvWaitKey(0);
-
 	imshow(camwndname,img1);
 
 	Mat * gray = new Mat(sz,1);
-	cout << endl << "gray DECLARED";
 
+
+	///convert to gray
 	cvtColor(timg,*gray,CV_RGB2GRAY);
-	cout << endl << "gray Created";
+	
 	///show gray scale
 	imshow(camwndname,*gray);
-	//waitKey(0);
-	////Show current temp image (timg)
 	imshow(camwndname,timg);
 
 
@@ -672,7 +679,7 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 	////Switching to a purely Canny based detection
 	////holder image
 	Mat canny_output;
-	Canny(*gray, canny_output, 100, 200, 3);
+	Canny(*gray, canny_output, 1, 250, 3);
 	//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
 
 	imshow(camwndname,canny_output);
@@ -846,37 +853,17 @@ void drawSquares( Mat img, vector<Rect> sq)
 		pts[3] = Point(sq[i].x+sq[i].width,sq[i].y+sq[i].height);
 		int n =4;
 
-		line(img,pts[0],pts[1],Scalar(scalarColorB,255,0),4,8,0);
+		line(img,pts[0],pts[1],Scalar(scalarColorB,255,0),2,8,0);
 
-		line(img,pts[1],pts[3],Scalar(scalarColorB,255,0),4,8,0);
+		line(img,pts[1],pts[3],Scalar(scalarColorB,255,0),2,8,0);
 
-		line(img,pts[3],pts[2],Scalar(scalarColorB,255,0),4,8,0);
+		line(img,pts[3],pts[2],Scalar(scalarColorB,255,0),2,8,0);
 
-		line(img,pts[2],pts[0],Scalar(scalarColorB,255,0),4,8,0);
+		line(img,pts[2],pts[0],Scalar(scalarColorB,255,0),2,8,0);
 		 
 		scalarColorB = 255 - scalarColorB;
 		imshow(camwndname,img);
 		waitKey(0);
-
-		//polylines(img,&pts,
-
-		//		int n = 4;
-		//		Point pts[3];
-
-		//		const Point* p = &sq[i][0];
-		//	int n = (int)sq[i].size();
-		//		polylines(img,&,&n,1,true, Scalar(0,255,0), 3, CV_AA);
-
-
-		//////////////////////////
-		//for( size_t i = 0; i < squares.size(); i++ )
-		//  {
-		//    const Point* p = &squares[i][0];
-		//  int n = (int)squares[i].size();
-		//polylines(image, &p, &n, 1, true, Scalar(0,255,0), 3, CV_AA);
-
-
-
 
 	}
 
@@ -895,12 +882,16 @@ int main(int argc, char** argv)
 	//////////Webcam section
 
 	VideoCapture capture(0);
+	
+	capture.set(CV_CAP_PROP_FRAME_WIDTH, 1280);
+	capture.set(CV_CAP_PROP_FRAME_HEIGHT, 960);
+
 	if(!capture.isOpened()) //Check status of capture
 	{	fprintf(stderr, "ERROR: capture is NULL... Exiting\n");
 	return 0;
 	}
 
-
+	Mat  crosshairs;
 	Mat  cam_curr_frame; ///Can't use pointers to Mat's? ///remove init to 0
 	Mat * cam_gray_frame = 0; ///curr frame and grayscale ver
 	int camw, camh; //frame size
@@ -912,7 +903,7 @@ int main(int argc, char** argv)
 
 	///Create a window that shows input from cam
 	cv::namedWindow(camwndname,1);
-
+	
 	while (true) {
 
 		// Get one frame
@@ -923,8 +914,16 @@ int main(int argc, char** argv)
 			//getchar();
 			break;
 		}
+		
+		camh = cam_curr_frame.rows;
+		camw = cam_curr_frame.cols;
+		
+		crosshairs = cam_curr_frame.clone();
 
-		imshow(camwndname,cam_curr_frame);
+		line(crosshairs,Point(0,camh/2),Point(camw,camh/2),Scalar(255,0,0),1);
+		line(crosshairs,Point(camw/2,0),Point(camw/2,camh),Scalar(255,0,0),1);
+
+		imshow(camwndname,crosshairs);
 		imshow(wndname,cam_curr_frame);
 		//imshow(camwndname, cam_curr_frame); ///Gives us a preview of what the camera is seeing. 
 		///currently freezes upon the switch to ID process.
@@ -932,9 +931,9 @@ int main(int argc, char** argv)
 
 		if ( (cvWaitKey(10) & 255) == 78)
 		{
-			cout << endl << "img0 is about to be cam_curr_frame";
+		
 			*img0 = cam_curr_frame;
-			cout << endl << "img0 is now cam_curr_frame";
+		
 			break;
 		}
 
@@ -943,6 +942,7 @@ int main(int argc, char** argv)
 
 	/////EndWebcam
 	////
+	cout << endl << "Size check: " << cam_curr_frame.size().height << " height" <<endl;
 	int i, c;
 
 
@@ -977,9 +977,15 @@ polyFromPoints(*Cards);
 //	cout << endl << "cropRect height = " << cropRect->height;
 
 	Mat croppedImage = displayCropped(cropRect,*img);
+
+	
 	imshow(croppedwndname,croppedImage);
 	
 	cropRotate(*img,*Cards);
+
+//	imshow(camwndname,*cropRotate(*img,*Cards));
+	
+	waitKey(0);
 
 	//Rect cropping(Cards[0][0].x,Cards[0][0].y,(Cards[0][1].x - Cards[0][0].x),(Cards[0][1].x - Cards[0][0].x)
 	cout << endl << "Draw some lines, if you find them";	//displayCropped
