@@ -462,7 +462,7 @@ Mat * cropRotate(Mat srcImg, vector<vector<Point> > card){
 		line(draw,pts[1],pts[3],Scalar(0,0,255),2);
 		line(draw,pts[0],pts[3],Scalar(0,255,255),2);
 
-		imshow(camwndname,draw);
+		imshow(wndname,draw);
 
 		waitKey();
 
@@ -588,7 +588,7 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 	cvtColor(timg,*gray,CV_RGB2GRAY);
 	
 	////Show a preview of this gray image
-	imshow(camwndname,*gray);
+	imshow(wndname,*gray);
 
 	cvWaitKey(0);
 
@@ -606,7 +606,7 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 	//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
 
-	imshow(camwndname,canny_output);
+	imshow(wndname,canny_output);
 	cvWaitKey(0);
 
 
@@ -665,7 +665,7 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 	/////Make a clone of the input image
 	Mat timg = img1.clone();
 
-	imshow(camwndname,img1);
+	imshow(wndname,img1);
 
 	Mat * gray = new Mat(sz,1);
 
@@ -674,8 +674,8 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 	cvtColor(timg,*gray,CV_RGB2GRAY);
 	
 	///show gray scale
-	imshow(camwndname,*gray);
-	imshow(camwndname,timg);
+	imshow(wndname,*gray);
+	imshow(wndname,timg);
 
 
 	///Pyr is a temp image to hold data for when we up/down scale the img
@@ -687,14 +687,14 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 
 	pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
 
-	imshow(camwndname,*gray);
+	imshow(wndname,*gray);
 	////Switching to a purely Canny based detection
 	////holder image
 	Mat canny_output;
 	Canny(*gray, canny_output, 1, 250, 3);
 	//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
 
-	imshow(camwndname,canny_output);
+	imshow(wndname,canny_output);
 	cvWaitKey(0);
 
 	///This works
@@ -874,7 +874,7 @@ void drawSquares( Mat img, vector<Rect> sq)
 		line(img,pts[2],pts[0],Scalar(scalarColorB,255,0),2,8,0);
 		 
 		scalarColorB = 255 - scalarColorB;
-		imshow(camwndname,img);
+		imshow(wndname,img);
 		waitKey(0);
 
 	}
@@ -892,7 +892,7 @@ int main(int argc, char** argv)
 {
 
 	//////////Webcam section
-
+printf("Assuming direct control of webcam");
 	VideoCapture capture(0);
 	
 	capture.set(CV_CAP_PROP_FRAME_WIDTH, 1280);
@@ -903,7 +903,8 @@ int main(int argc, char** argv)
 	return 0;
 	}
 
-	Mat  crosshairs;
+printf("Allocating various global vars");
+	Mat  *crosshairs;
 	Mat  cam_curr_frame; ///Can't use pointers to Mat's? ///remove init to 0
 	Mat * cam_gray_frame = 0; ///curr frame and grayscale ver
 	int camw, camh; //frame size
@@ -913,9 +914,12 @@ int main(int argc, char** argv)
 	Mat * img;
 	Mat * img0 = new Mat();
 
+	printf("Creating window to display cam image");
 	///Create a window that shows input from cam
-	cv::namedWindow(camwndname,1);
-	
+	//cv::namedWindow(camwndname,1);
+
+
+	printf("Activating webcam");
 	while (true) {
 
 		// Get one frame
@@ -927,15 +931,19 @@ int main(int argc, char** argv)
 			break;
 		}
 		
-		camh = cam_curr_frame.rows;
-		camw = cam_curr_frame.cols;
+		//camh = cam_curr_frame.rows;
+		//camw = cam_curr_frame.cols;
 		
-		crosshairs = cam_curr_frame.clone();
+		crosshairs = new Mat(480,640,1);
+		camh = crosshairs->rows;
+		camw = crosshairs->cols;
+		//	= cam_curr_frame.clone();
+		resize(cam_curr_frame,*crosshairs,crosshairs->size());
 
-		line(crosshairs,Point(0,camh/2),Point(camw,camh/2),Scalar(255,0,0),1);
-		line(crosshairs,Point(camw/2,0),Point(camw/2,camh),Scalar(255,0,0),1);
+		line(*crosshairs,Point(0,camh/2),Point(camw,camh/2),Scalar(255,0,0),1);
+		line(*crosshairs,Point(camw/2,0),Point(camw/2,camh),Scalar(255,0,0),1);
 
-		imshow(camwndname,crosshairs);
+		imshow(camwndname,*crosshairs);
 		imshow(wndname,cam_curr_frame);
 		//imshow(camwndname, cam_curr_frame); ///Gives us a preview of what the camera is seeing. 
 		///currently freezes upon the switch to ID process.
