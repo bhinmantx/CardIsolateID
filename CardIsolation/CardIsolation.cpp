@@ -4,6 +4,7 @@
 
 //////Note for anyone reading this code right now: This is a mishmash of code based on the "squares.c" tutorial 
 //////released with OpenCV
+////Major changeover to new OpenCV libraries
 #ifdef _CH_
 #pragma package <opencv>
 #endif
@@ -15,16 +16,27 @@
 
 
 #include "stdafx.h"
-#include <cv.h>
-#include "cvaux.h"
-#include <highgui.h>
-#include "cxcore.h"
+//#include <cv.h>
+//#include "cvaux.h"
+//#include <highgui.h>
+//#include "cxcore.h"
+
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
+
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+#include "opencv2/ocl/ocl.hpp"
+
+
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
 #include <string.h>
 #include <sys/timeb.h>
-#include "C:\OpenCV2.1\src\cv\_cvimgproc.h"
+//#include "C:\OpenCV2.1\src\cv\_cvimgproc.h"
 
 using namespace std;
 using namespace cv;
