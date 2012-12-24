@@ -54,10 +54,10 @@ int thresh = 50;
 
 
 
-const char* camwndname = "Input Image Cam";
+const char* camwndname = "InputImageCam";
 const char* wndname = "square"; ////Is this what I am using to show the squares
 const char* croppedwndname = "Cropped Window";
-const char* rotatedwnd = "Attempting to Rotate";
+const char* rotatedwnd = "AttemptingToRotate";
 
 Mat* rotateDisplay;
 
@@ -156,7 +156,6 @@ void isolateCard(vector<vector<Point> > &foundCards)
 		
 
 		cropRect = &boundingRect(Mat(foundCards[i]));
-		
 		
 		
 		cout << endl << "Area of the rect I found is " << abs(cropRect->area());
@@ -655,7 +654,7 @@ vector<Rect> findSquares4( Mat img1, CvMemStorage *storage )
 
 void findCards( Mat img1, vector<vector<Point> > *cards )
 {
-cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
+cout << "void findCards( Mat img1, vector<Point> *cards ) \n" << endl;
 
 	//Store shapes we find
 	vector<vector<Point>> contours;
@@ -664,20 +663,24 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 	Size sz = img1.size();
 	/////Make a clone of the input image
 	Mat timg = img1.clone();
+printf("About to try displaying the image with width %i \n", img1.cols);
 
-	imshow(wndname,img1);
 
+imshow(wndname,img1);
+
+
+	printf("creating Gray \n", img1.cols);
 	Mat * gray = new Mat(sz,1);
 
 
 	///convert to gray
 	cvtColor(timg,*gray,CV_RGB2GRAY);
-	
+	printf("About to try showing the grayscale \n");
 	///show gray scale
 	imshow(wndname,*gray);
 	imshow(wndname,timg);
 
-
+printf("Pyr up/down \n");
 	///Pyr is a temp image to hold data for when we up/down scale the img
 	Mat pyr(sz.height/2,sz.width/2,1);
 	// down-scale and upscale the image to filter out the noise
@@ -686,17 +689,19 @@ cout << "void findCards( Mat img1, vector<Point> *cards )" << endl;
 	///Display the intervening images
 
 	pyrUp( pyr, *gray,Size(gray->cols,gray->rows) );
-
+printf("Display Gray\n");
 	imshow(wndname,*gray);
 	////Switching to a purely Canny based detection
 	////holder image
+	printf("Run Canny\n");
 	Mat canny_output;
 	Canny(*gray, canny_output, 1, 250, 3);
 	//	threshold(*gray,canny_output,10,255,CV_THRESH_BINARY);
-
+		printf("Show Canny\n");
 	imshow(wndname,canny_output);
-	cvWaitKey(0);
 
+
+	printf("Find contours \n");
 	///This works
 	findContours(canny_output,contours,CV_RETR_LIST,CV_CHAIN_APPROX_SIMPLE);
 
@@ -956,6 +961,9 @@ printf("Allocating various global vars");
 		
 			break;
 		}
+////Clear the frame in view if it hasn't broken from loop
+		delete crosshairs;
+
 
 
 	}
@@ -966,7 +974,7 @@ printf("Allocating various global vars");
 	int i, c;
 
 
-	CvMemStorage * storage = cvCreateMemStorage(0);
+	//CvMemStorage * storage = cvCreateMemStorage(0);
 
 	///Make a copy of the image we pulled from the camera
 	img = new Mat();
@@ -990,8 +998,6 @@ polyFromPoints(*Cards);
 
 	//cout << endl << "X/Y of last card " << lastCard[0]->x << " " << lastCard[0]->y;
 	
-
-
 	Rect* cropRect = createCropRectFromCard(*Cards);
 	
 //	cout << endl << "cropRect height = " << cropRect->height;
